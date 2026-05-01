@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
+from routers.stocks import _ticker_counters
 from services import claude_ai, stock_data, ollama_ai
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
@@ -44,6 +45,7 @@ class SentimentRequest(BaseModel):
 
 @router.post("/stock-analysis")
 def stock_analysis(req: StockAnalysisRequest):
+    _ticker_counters[req.ticker] += 1
     try:
         data = stock_data.get_stock_analysis_data(req.ticker)
     except Exception as e:
