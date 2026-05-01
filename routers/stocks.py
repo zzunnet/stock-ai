@@ -1,8 +1,12 @@
+from collections import defaultdict
+
 from fastapi import APIRouter, HTTPException, Query
 
 from services import stock_data
 
 router = APIRouter(prefix="/api/stocks", tags=["stocks"])
+
+_ticker_counters: dict = defaultdict(int)
 
 
 @router.get("/list")
@@ -15,6 +19,7 @@ def stock_list(market: str = Query("KOSPI", description="KOSPI | KOSDAQ | KRX"))
 
 @router.get("/ohlcv/{ticker}")
 def ohlcv(ticker: str, days: int = Query(90, ge=10, le=500)):
+    _ticker_counters[ticker] += 1
     try:
         return {"ticker": ticker, "data": stock_data.get_ohlcv(ticker, days)}
     except Exception as e:
@@ -23,6 +28,7 @@ def ohlcv(ticker: str, days: int = Query(90, ge=10, le=500)):
 
 @router.get("/info/{ticker}")
 def stock_info(ticker: str):
+    _ticker_counters[ticker] += 1
     return stock_data.get_stock_info(ticker)
 
 

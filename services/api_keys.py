@@ -102,6 +102,20 @@ def get_key_info(key: str) -> Optional[dict]:
         return info if info and info.get("active") else None
 
 
+def count_active_keys() -> int:
+    if _use_db():
+        try:
+            with _get_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT COUNT(*) FROM api_keys WHERE active = TRUE")
+                    return cur.fetchone()[0]
+        except Exception:
+            return 0
+    else:
+        data = _json_load()
+        return sum(1 for v in data.values() if v.get("active"))
+
+
 def revoke_key(key: str) -> bool:
     if _use_db():
         with _get_conn() as conn:

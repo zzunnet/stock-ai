@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 load_dotenv(override=True)
 
 from middleware.auth import AuthMiddleware
-from routers import ai, stocks, payments
+from routers import ai, admin, stocks, payments
 from services.api_keys import init_db
 
 app = FastAPI(
@@ -29,6 +29,7 @@ app.add_middleware(AuthMiddleware)
 app.include_router(stocks.router)
 app.include_router(ai.router)
 app.include_router(payments.router)
+app.include_router(admin.router)
 
 
 @app.on_event("startup")
