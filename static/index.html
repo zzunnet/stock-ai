@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockAI - AI가 설명하는 주식 분석</title>
+  <meta name="description" content="복잡한 HTS는 싫고, Toss는 너무 단순한 당신을 위한 AI 주식 분석 서비스. 주가 변동의 이유를 AI가 설명해드립니다.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #3B82F6;
+      --primary-dark: #1D4ED8;
+      --bg: #0A0F1E;
+      --bg2: #111827;
+      --bg3: #1F2937;
+      --text: #F9FAFB;
+      --text-muted: #9CA3AF;
+      --border: #374151;
+      --green: #10B981;
+      --red: #EF4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 1rem 2rem;
+      background: rgba(10, 15, 30, 0.8);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+    .logo span { color: var(--text); }
+    nav .cta-btn {
+      padding: 0.5rem 1.25rem;
+      background: var(--primary);
+      color: white;
+      border: none; border-radius: 8px;
+      font-size: 0.875rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+    }
+
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 6rem 1.5rem 4rem;
+      background: radial-gradient(ellipse at 50% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 60%);
+    }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      padding: 0.35rem 0.9rem;
+      background: rgba(59, 130, 246, 0.12);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 20px;
+      font-size: 0.8rem; color: #93C5FD;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .hero h1 .highlight { color: var(--primary); }
+    .hero p {
+      font-size: 1.1rem; color: var(--text-muted);
+      max-width: 560px; margin: 0 auto 2.5rem;
+    }
+    .hero-btns { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      padding: 0.875rem 2rem;
+      background: var(--primary);
+      color: white; border: none; border-radius: 10px;
+      font-size: 1rem; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-secondary {
+      padding: 0.875rem 2rem;
+      background: transparent;
+      color: var(--text); border: 1px solid var(--border); border-radius: 10px;
+      font-size: 1rem; font-weight: 500;
+      cursor: pointer; text-decoration: none;
+      transition: border-color 0.2s;
+    }
+    .btn-secondary:hover { border-color: var(--primary); color: var(--primary); }
+
+    .demo-section {
+      padding: 2rem 1.5rem 5rem;
+      max-width: 900px; margin: 0 auto;
+    }
+    .demo-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      box-shadow: 0 25px 60px rgba(0,0,0,0.4);
+    }
+    .demo-header {
+      display: flex; align-items: center; gap: 1rem;
+      margin-bottom: 1.25rem; padding-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .stock-ticker { font-size: 1.5rem; font-weight: 700; }
+    .stock-price { font-size: 1.25rem; color: var(--green); font-weight: 600; }
+    .stock-change {
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--green); padding: 0.2rem 0.6rem;
+      border-radius: 6px; font-size: 0.875rem; font-weight: 600;
+    }
+    .ai-analysis-box {
+      background: var(--bg3);
+      border-radius: 12px; padding: 1.25rem;
+      border-left: 3px solid var(--primary);
+    }
+    .ai-label {
+      font-size: 0.75rem; color: var(--primary); font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      margin-bottom: 0.5rem;
+    }
+    .ai-text { font-size: 0.9rem; color: var(--text-muted); line-height: 1.7; }
+    .ai-text strong { color: var(--text); }
+
+    .stats {
+      display: flex; gap: 1.5rem; margin-top: 1.25rem; flex-wrap: wrap;
+    }
+    .stat-item { display: flex; align-items: center; gap: 0.4rem; }
+    .stat-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+    .stat-text { font-size: 0.8rem; color: var(--text-muted); }
+
+    .features {
+      padding: 5rem 1.5rem;
+      background: var(--bg2);
+    }
+    .section-header { text-align: center; margin-bottom: 3.5rem; }
+    .section-header h2 { font-size: 2rem; font-weight: 700; margin-bottom: 0.75rem; }
+    .section-header p { color: var(--text-muted); max-width: 480px; margin: 0 auto; }
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 1.5rem; max-width: 1100px; margin: 0 auto;
+    }
+    .feature-card {
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 14px; padding: 1.5rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .feature-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+    .feature-icon { font-size: 1.75rem; margin-bottom: 1rem; }
+    .feature-card h3 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .feature-card p { font-size: 0.875rem; color: var(--text-muted); }
+
+    .pricing {
+      padding: 5rem 1.5rem;
+    }
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem; max-width: 800px; margin: 0 auto;
+    }
+    .plan-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 2rem;
+      position: relative;
+    }
+    .plan-card.popular {
+      border-color: var(--primary);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), var(--bg2));
+    }
+    .popular-badge {
+      position: absolute; top: -12px; left: 50%; transform: translateX(-50%);
+      background: var(--primary); color: white;
+      padding: 0.2rem 0.9rem; border-radius: 20px;
+      font-size: 0.75rem; font-weight: 700;
+    }
+    .plan-name { font-size: 1rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; }
+    .plan-price { font-size: 2.25rem; font-weight: 800; margin-bottom: 0.25rem; }
+    .plan-price span { font-size: 1rem; font-weight: 400; color: var(--text-muted); }
+    .plan-desc { font-size: 0.875rem; color: var(--text-muted); margin-bottom: 1.5rem; }
+    .plan-features { list-style: none; margin-bottom: 2rem; }
+    .plan-features li {
+      padding: 0.4rem 0; font-size: 0.9rem; color: var(--text-muted);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .plan-features li::before { content: "✓"; color: var(--green); font-weight: 700; }
+    .plan-features li.muted { color: #4B5563; }
+    .plan-features li.muted::before { content: "✗"; color: #4B5563; }
+    .plan-btn {
+      width: 100%; padding: 0.875rem;
+      border-radius: 10px; border: none;
+      font-size: 0.9rem; font-weight: 600; cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .plan-btn.outline {
+      background: transparent; border: 1px solid var(--border); color: var(--text);
+    }
+    .plan-btn.filled { background: var(--primary); color: white; }
+    .plan-btn:hover { opacity: 0.85; }
+
+    .free-note {
+      text-align: center; margin-top: 1.5rem;
+      font-size: 0.875rem; color: var(--text-muted);
+    }
+    .free-note strong { color: var(--text); }
+
+    footer {
+      padding: 2.5rem 1.5rem;
+      border-top: 1px solid var(--border);
+      text-align: center; color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    footer .footer-logo { font-size: 1.1rem; font-weight: 700; color: var(--primary); margin-bottom: 0.5rem; }
+    footer a { color: var(--text-muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
+
+    @media (max-width: 600px) {
+      nav { padding: 0.875rem 1rem; }
+      .hero h1 { font-size: 1.9rem; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Stock<span>AI</span></div>
+  <a href="#pricing" class="cta-btn">무료로 시작하기</a>
+</nav>
+
+<section class="hero">
+  <div class="hero-badge">
+    <span>🤖</span> AI 기반 한국 주식 분석
+  </div>
+  <h1>
+    주가가 왜 올랐는지<br>
+    <span class="highlight">AI가 설명해 드립니다</span>
+  </h1>
+  <p>
+    복잡한 HTS는 싫고, Toss는 너무 단순한 개인투자자를 위한 서비스.
+    차트 뒤에 숨은 이유를 AI가 한국어로 분석해 드립니다.
+  </p>
+  <div class="hero-btns">
+    <a href="#pricing" class="btn-primary">무료로 시작하기</a>
+    <a href="#features" class="btn-secondary">기능 살펴보기</a>
+  </div>
+</section>
+
+<section class="demo-section">
+  <div class="demo-card">
+    <div class="demo-header">
+      <div>
+        <div class="stock-ticker">삼성전자 (005930)</div>
+        <div style="font-size:0.8rem; color:var(--text-muted);">KOSPI · 실시간</div>
+      </div>
+      <div style="margin-left:auto; text-align:right;">
+        <div class="stock-price">78,400원</div>
+        <div class="stock-change">▲ +2.4%</div>
+      </div>
+    </div>
+    <div class="ai-analysis-box">
+      <div class="ai-label">⚡ AI 분석 — 오늘 상승 이유</div>
+      <div class="ai-text">
+        오늘 삼성전자는 <strong>HBM3E 메모리 엔비디아 공급 계약 체결 소식</strong>에
+        2.4% 상승했습니다. 미국 반도체 지수(SOX)가 전일 +1.8% 상승한 것과
+        <strong>외국인 순매수 847억원</strong>이 유입되며 상승세를 견인했습니다.
+        RSI 58로 과매수 구간 진입 전이며, 다음 저항선은 <strong>80,000원</strong>입니다.
+      </div>
+    </div>
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-dot"></div>
+        <div class="stat-text">외국인 순매수 847억</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-dot" style="background:#3B82F6;"></div>
+        <div class="stat-text">기관 순매수 230억</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-dot" style="background:#F59E0B;"></div>
+        <div class="stat-text">거래량 전일比 +34%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="features" id="features">
+  <div class="section-header">
+    <h2>기존 앱과 무엇이 다른가요?</h2>
+    <p>복잡한 숫자 나열이 아닌, 맥락을 이해하는 AI 분석</p>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <h3>Why 분석</h3>
+      <p>단순 지표 제공을 넘어, 주가 변동의 이유를 뉴스·수급·기술적 분석을 종합해 한국어로 설명합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📊</div>
+      <h3>OHLCV + 기술적 지표</h3>
+      <p>KOSPI/KOSDAQ 전 종목의 캔들차트, 이동평균선, RSI, MACD, 볼린저밴드를 즉시 조회합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h3>종목 스크리닝</h3>
+      <p>조건에 맞는 종목을 AI가 필터링해 드립니다. "거래량 급증 + 신고가 + 외국인 매수" 같은 복합 조건도 가능합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">💬</div>
+      <h3>자연어 질의</h3>
+      <p>"삼성전자 왜 올랐어?" "반도체 관련주 중 RSI 낮은 종목 찾아줘" — 말하듯 물어보세요.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📈</div>
+      <h3>시장 지수 실시간</h3>
+      <p>KOSPI, KOSDAQ, 다우존스, 나스닥, S&P500 실시간 현황과 AI 코멘트를 한눈에 확인합니다.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔑</div>
+      <h3>API 접근</h3>
+      <p>개발자라면 REST API로 직접 연동 가능합니다. 자신만의 트레이딩 시스템에 AI 분석을 붙여보세요.</p>
+    </div>
+  </div>
+</section>
+
+<section class="pricing" id="pricing">
+  <div class="section-header">
+    <h2>합리적인 가격</h2>
+    <p>Alpha Square 대비 절반 가격, 두 배의 AI 분석</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="plan-card">
+      <div class="plan-name">무료</div>
+      <div class="plan-price">₩0 <span>/ 월</span></div>
+      <div class="plan-desc">가볍게 시작해보세요</div>
+      <ul class="plan-features">
+        <li>일 30회 API 조회</li>
+        <li>AI 분석 일 3회</li>
+        <li>KOSPI/KOSDAQ 시세</li>
+        <li>기본 기술적 지표</li>
+        <li class="muted">종목 스크리닝</li>
+        <li class="muted">무제한 AI 질의</li>
+      </ul>
+      <button class="plan-btn outline" onclick="alert('곧 오픈합니다!')">무료로 시작하기</button>
+    </div>
+    <div class="plan-card popular">
+      <div class="popular-badge">인기</div>
+      <div class="plan-name">스타터</div>
+      <div class="plan-price">₩9,900 <span>/ 월</span></div>
+      <div class="plan-desc">진지한 개인투자자를 위해</div>
+      <ul class="plan-features">
+        <li>일 500회 API 조회</li>
+        <li>AI 분석 일 30회</li>
+        <li>KOSPI/KOSDAQ 시세</li>
+        <li>전체 기술적 지표</li>
+        <li>종목 스크리닝</li>
+        <li class="muted">무제한 AI 질의</li>
+      </ul>
+      <button class="plan-btn filled" onclick="alert('곧 오픈합니다!')">시작하기</button>
+    </div>
+    <div class="plan-card">
+      <div class="plan-name">프로</div>
+      <div class="plan-price">₩29,900 <span>/ 월</span></div>
+      <div class="plan-desc">파워유저·소규모 팀용</div>
+      <ul class="plan-features">
+        <li>무제한 API 조회</li>
+        <li>무제한 AI 분석</li>
+        <li>무제한 AI 질의</li>
+        <li>종목 스크리닝 고급</li>
+        <li>우선 고객지원</li>
+        <li>백테스팅 (예정)</li>
+      </ul>
+      <button class="plan-btn outline" onclick="alert('곧 오픈합니다!')">시작하기</button>
+    </div>
+  </div>
+  <div class="free-note">
+    신용카드 불필요 · <strong>무료 플랜 영구 제공</strong> · 언제든 취소 가능
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">StockAI</div>
+  <p style="margin-bottom:0.75rem;">AI가 설명하는 한국 주식 분석 서비스</p>
+  <p>
+    <a href="#">이용약관</a> ·
+    <a href="#">개인정보처리방침</a> ·
+    <a href="mailto:hello@stock-ai.co.kr">문의하기</a>
+  </p>
+  <p style="margin-top:1rem; font-size:0.8rem;">© 2026 StockAI. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
