@@ -52,3 +52,11 @@ def index():
     if index_file.exists():
         return FileResponse(str(index_file))
     return {"message": "주식 AI 분석 API", "docs": "/docs"}
+
+
+@app.get("/demo.html")
+def demo():
+    demo_file = static_dir / "demo.html"
+    if demo_file.exists():
+        return FileResponse(str(demo_file))
+    return {"detail": "Not Found"}
