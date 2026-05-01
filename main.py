@@ -62,3 +62,11 @@ def demo():
     if demo_file.exists():
         return FileResponse(str(demo_file))
     return {"detail": "Not Found"}
+
+
+@app.get("/dashboard")
+def dashboard():
+    dashboard_file = static_dir / "dashboard.html"
+    if dashboard_file.exists():
+        return FileResponse(str(dashboard_file))
+    return {"detail": "Not Found"}

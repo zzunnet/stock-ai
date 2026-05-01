@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nuri Labs — 현황판</title>
+<style>
+  :root {
+    --bg: #0A0F1E;
+    --bg2: #111827;
+    --bg3: #1F2937;
+    --border: #374151;
+    --text: #F9FAFB;
+    --muted: #9CA3AF;
+    --blue: #3B82F6;
+    --green: #10B981;
+    --amber: #F59E0B;
+    --red: #EF4444;
+    --purple: #8B5CF6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, 'Pretendard', 'Segoe UI', sans-serif; font-size: 14px; line-height: 1.6; min-height: 100vh; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  /* Header */
+  .header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .co-name { font-size: 22px; font-weight: 600; color: var(--text); }
+  .co-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .header-right { text-align: right; }
+  .live-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--green); background: rgba(16,185,129,.12); padding: 4px 12px; border-radius: 99px; border: 1px solid rgba(16,185,129,.25); }
+  .pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+  .last-update { font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+  /* Section */
+  .section { margin-bottom: 2rem; }
+  .section-title { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+
+  /* KPI grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .kpi-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+  .kpi-label { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .kpi-value { font-size: 28px; font-weight: 600; color: var(--text); }
+  .kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .kpi-value.green { color: var(--green); }
+  .kpi-value.amber { color: var(--amber); }
+  .kpi-value.red { color: var(--red); }
+
+  /* Two col */
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; }
+
+  /* Projects */
+  .proj-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; position: relative; overflow: hidden; }
+  .proj-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; border-radius: 12px 12px 0 0; }
+  .proj-card.active::before { background: var(--green); }
+  .proj-card.dev::before { background: var(--blue); }
+  .proj-card.research::before { background: var(--muted); }
+  .proj-name { font-size: 15px; font-weight: 600; margin-bottom: 2px; }
+  .proj-domain { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .proj-rows { display: flex; flex-direction: column; gap: 6px; }
+  .proj-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; }
+  .proj-key { color: var(--muted); }
+
+  /* Badge */
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 9px; border-radius: 99px; }
+  .b-green { background: rgba(16,185,129,.15); color: #34D399; border: 1px solid rgba(16,185,129,.3); }
+  .b-blue { background: rgba(59,130,246,.15); color: #60A5FA; border: 1px solid rgba(59,130,246,.3); }
+  .b-amber { background: rgba(245,158,11,.15); color: #FCD34D; border: 1px solid rgba(245,158,11,.3); }
+  .b-red { background: rgba(239,68,68,.15); color: #F87171; border: 1px solid rgba(239,68,68,.3); }
+  .b-gray { background: rgba(156,163,175,.1); color: var(--muted); border: 1px solid rgba(156,163,175,.2); }
+  .b-purple { background: rgba(139,92,246,.15); color: #A78BFA; border: 1px solid rgba(139,92,246,.3); }
+
+  /* Employee */
+  .emp-list { display: flex; flex-direction: column; gap: 8px; }
+  .emp-row { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--bg3); border-radius: 8px; border: 1px solid var(--border); }
+  .avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .av-purple { background: rgba(139,92,246,.2); color: #A78BFA; }
+  .av-teal { background: rgba(16,185,129,.15); color: #34D399; }
+  .av-amber { background: rgba(245,158,11,.15); color: #FCD34D; }
+  .av-gray { background: rgba(156,163,175,.1); color: var(--muted); }
+  .emp-info { flex: 1; min-width: 0; }
+  .emp-name { font-size: 13px; font-weight: 500; }
+  .emp-role { font-size: 11px; color: var(--muted); }
+  .emp-task-text { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 280px; }
+  .dot-status { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot-green { background: var(--green); animation: pulse 1.5s ease-in-out infinite; }
+  .dot-done { background: #34D399; }
+  .dot-wait { background: var(--amber); animation: pulse 1.5s ease-in-out infinite; }
+  .dot-idle { background: var(--muted); }
+
+  /* Service health */
+  .health-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .health-row:last-child { border-bottom: none; }
+  .health-name { font-size: 13px; }
+  .health-sub { font-size: 11px; color: var(--muted); }
+
+  /* Blocker / todo */
+  .blocker-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: rgba(239,68,68,.06); border: 1px solid rgba(239,68,68,.2); border-radius: 8px; margin-bottom: 8px; }
+  .blocker-item:last-child { margin-bottom: 0; }
+  .blocker-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .blocker-text { font-size: 13px; }
+  .blocker-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .todo-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(59,130,246,.06); border: 1px solid rgba(59,130,246,.2); border-radius: 8px; margin-bottom: 8px; font-size: 13px; }
+  .todo-item:last-child { margin-bottom: 0; }
+  .todo-num { font-size: 11px; font-weight: 600; color: var(--blue); width: 18px; flex-shrink: 0; }
+
+  /* Stats from API */
+  .stat-loading { color: var(--muted); font-size: 12px; }
+  .bar-wrap { margin-top: 8px; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; }
+  .bar-label { width: 70px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-bg { flex: 1; background: var(--bg3); border-radius: 4px; height: 6px; }
+  .bar-fill { height: 6px; background: var(--blue); border-radius: 4px; transition: width .5s ease; }
+  .bar-count { width: 24px; text-align: right; color: var(--muted); }
+
+  /* Footer */
+  .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .footer-left { font-size: 11px; color: var(--muted); }
+  .refresh-btn { font-size: 12px; color: var(--blue); background: rgba(59,130,246,.1); border: 1px solid rgba(59,130,246,.3); border-radius: 6px; padding: 6px 14px; cursor: pointer; }
+  .refresh-btn:hover { background: rgba(59,130,246,.2); }
+
+  @media (max-width: 768px) {
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .grid2, .grid3 { grid-template-columns: 1fr; }
+    .emp-task-text { max-width: 160px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="co-name">Nuri Labs</div>
+      <div class="co-sub">누리 — 세상을 분석하는 AI &nbsp;·&nbsp; CEO: Joonhee &nbsp;·&nbsp; 이사: 클이사</div>
+    </div>
+    <div class="header-right">
+      <div class="live-badge"><div class="pulse"></div> 라이브</div>
+      <div class="last-update" id="last-update">업데이트 중...</div>
+    </div>
+  </div>
+
+  <!-- KPI -->
+  <div class="section">
+    <div class="section-title">핵심 지표</div>
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">이번 달 매출</div>
+        <div class="kpi-value amber" id="kpi-revenue">₩0</div>
+        <div class="kpi-sub">첫 유료 고객 대기 중</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">오늘 AI 분석 요청</div>
+        <div class="kpi-value green" id="kpi-ai-calls">-</div>
+        <div class="kpi-sub" id="kpi-ai-sub">로딩 중...</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">등록 유저</div>
+        <div class="kpi-value" id="kpi-users">-</div>
+        <div class="kpi-sub">누적 가입자</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">서비스 상태</div>
+        <div class="kpi-value" id="kpi-status" style="font-size:18px;padding-top:4px">-</div>
+        <div class="kpi-sub" id="kpi-status-sub">확인 중...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Projects + Health -->
+  <div class="grid2 section">
+    <div>
+      <div class="section-title">추진 사업</div>
+      <div class="grid3" style="margin-bottom:0">
+        <div class="proj-card active">
+          <div class="proj-name">StockAI</div>
+          <div class="proj-domain">stock-ai.co.kr</div>
+          <div class="proj-rows">
+            <div class="proj-row"><span class="proj-key">상태</span><span class="badge b-green">베타 라이브</span></div>
+            <div class="proj-row"><span class="proj-key">개발</span><span>70%</span></div>
+            <div class="proj-row"><span class="proj-key">매출</span><span>₩0</span></div>
+            <div class="proj-row"><span class="proj-key">우선순위</span><span class="badge b-blue">1순위</span></div>
+          </div>
+        </div>
+        <div class="proj-card dev">
+          <div class="proj-name">Football Scout</div>
+          <div class="proj-domain">Railway 배포 중</div>
+          <div class="proj-rows">
+            <div class="proj-row"><span class="proj-key">상태</span><span class="badge b-blue">개발 중</span></div>
+            <div class="proj-row"><span class="proj-key">단계</span><span>MVP</span></div>
+            <div class="proj-row"><span class="proj-key">매출</span><span>₩0</span></div>
+            <div class="proj-row"><span class="proj-key">우선순위</span><span class="badge b-gray">2순위</span></div>
+          </div>
+        </div>
+        <div class="proj-card research">
+          <div class="proj-name">Transfermarkt</div>
+          <div class="proj-domain">축구 데이터</div>
+          <div class="proj-rows">
+            <div class="proj-row"><span class="proj-key">상태</span><span class="badge b-gray">리서치</span></div>
+            <div class="proj-row"><span class="proj-key">단계</span><span>분석</span></div>
+            <div class="proj-row"><span class="proj-key">매출</span><span>₩0</span></div>
+            <div class="proj-row"><span class="proj-key">우선순위</span><span class="badge b-gray">3순위</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">서비스 헬스</div>
+      <div class="card" style="padding: 1rem 1.25rem;">
+        <div class="health-row">
+          <div><div class="health-name">API 서버</div><div class="health-sub">stock-ai.co.kr/health</div></div>
+          <span class="badge" id="health-api">확인 중...</span>
+        </div>
+        <div class="health-row">
+          <div><div class="health-name">AI 분석 엔진</div><div class="health-sub">Claude API</div></div>
+          <span class="badge" id="health-ai">확인 중...</span>
+        </div>
+        <div class="health-row">
+          <div><div class="health-name">데이터베이스</div><div class="health-sub">Railway PostgreSQL</div></div>
+          <span class="badge" id="health-db">확인 중...</span>
+        </div>
+        <div class="health-row">
+          <div><div class="health-name">도메인</div><div class="health-sub">stock-ai.co.kr</div></div>
+          <span class="badge b-green">정상</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Popular tickers + employees -->
+  <div class="grid2 section">
+    <div>
+      <div class="section-title">인기 종목 TOP 5 (오늘)</div>
+      <div class="card">
+        <div class="bar-wrap" id="ticker-bars">
+          <div class="stat-loading">API 연결 중...</div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">직원 현황 — <span id="emp-count">8</span>명</div>
+      <div class="emp-list">
+        <div class="emp-row">
+          <div class="dot-status dot-green"></div>
+          <div class="avatar av-purple">클이</div>
+          <div class="emp-info">
+            <div class="emp-name">클이사 (Claude)</div>
+            <div class="emp-role">이사 · 전략/기획/총괄</div>
+          </div>
+          <span class="badge b-green">근무 중</span>
+        </div>
+        <div class="emp-row">
+          <div class="dot-status dot-done"></div>
+          <div class="avatar av-teal">C1</div>
+          <div class="emp-info">
+            <div class="emp-name">코덱스 1–5호</div>
+            <div class="emp-role">개발팀 · Claude Code</div>
+          </div>
+          <span class="badge b-green" id="codex-badge">5건 완료</span>
+        </div>
+        <div class="emp-row">
+          <div class="dot-status dot-wait"></div>
+          <div class="avatar av-amber">GEM</div>
+          <div class="emp-info">
+            <div class="emp-name">제미나이</div>
+            <div class="emp-role">리서치팀 · Gemini CLI</div>
+          </div>
+          <span class="badge b-amber">bat 실행 대기</span>
+        </div>
+        <div class="emp-row">
+          <div class="dot-status dot-done"></div>
+          <div class="avatar av-gray">OLL</div>
+          <div class="emp-info">
+            <div class="emp-name">올라마</div>
+            <div class="emp-role">분석팀 · 로컬 LLM</div>
+          </div>
+          <span class="badge b-gray">배포됨</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blockers + Todos -->
+  <div class="grid2 section">
+    <div>
+      <div class="section-title">블로커 (즉시 해결 필요)</div>
+      <div id="blockers-list">
+        <div class="blocker-item">
+          <div class="blocker-icon">⚡</div>
+          <div>
+            <div class="blocker-text">Anthropic API 크레딧 소진</div>
+            <div class="blocker-desc">console.anthropic.com → Billing → $10 충전</div>
+          </div>
+        </div>
+        <div class="blocker-item">
+          <div class="blocker-icon">⚡</div>
+          <div>
+            <div class="blocker-text">git push 충돌 — PR 2개 미머지</div>
+            <div class="blocker-desc">cd stock-ai && git fetch origin && git merge origin/claude/recursing-jepsen-617a18 && git push origin main</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="section-title">다음 할 일</div>
+      <div id="todos-list">
+        <div class="todo-item"><div class="todo-num">1</div>lemonsqueezy.com 가입 + 상품 2개 생성</div>
+        <div class="todo-item"><div class="todo-num">2</div>Railway 환경변수에 결제 링크 등록</div>
+        <div class="todo-item"><div class="todo-num">3</div>트위터/X 첫 포스팅 (템플릿 준비됨)</div>
+        <div class="todo-item"><div class="todo-num">4</div>제미나이 SEO 리서치 bat 파일 실행</div>
+        <div class="todo-item"><div class="todo-num">5</div>네이버 카페 홍보글 게시</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-left">30초마다 자동 갱신 &nbsp;·&nbsp; <span id="timer">30</span>초 후 갱신</div>
+    <button class="refresh-btn" onclick="fetchAll()">지금 갱신</button>
+  </div>
+
+</div>
+
+<script>
+(function() {
+  if (new URLSearchParams(window.location.search).get('key') !== 'nurilabs2026') {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0A0F1E;color:#EF4444;font-size:24px;font-family:-apple-system,sans-serif;font-weight:600;">접근 거부</div>';
+  }
+})();
+
+const API = 'https://stock-ai.co.kr';
+
+async function fetchHealth() {
+  try {
+    const r = await fetch(API + '/health', { signal: AbortSignal.timeout(5000) });
+    const d = await r.json();
+    document.getElementById('health-api').className = 'badge b-green';
+    document.getElementById('health-api').textContent = '정상';
+    document.getElementById('health-db').className = 'badge b-green';
+    document.getElementById('health-db').textContent = '정상';
+    document.getElementById('kpi-status').textContent = '정상';
+    document.getElementById('kpi-status').className = 'kpi-value green';
+    document.getElementById('kpi-status-sub').textContent = 'API 서버 응답 중';
+  } catch(e) {
+    document.getElementById('health-api').className = 'badge b-red';
+    document.getElementById('health-api').textContent = '장애';
+    document.getElementById('kpi-status').textContent = '장애';
+    document.getElementById('kpi-status').className = 'kpi-value red';
+    document.getElementById('kpi-status-sub').textContent = '서버 응답 없음';
+  }
+}
+
+async function fetchStats() {
+  try {
+    const r = await fetch(API + '/api/admin/stats', { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+
+    // KPIs
+    document.getElementById('kpi-ai-calls').textContent = d.today_ai_requests ?? 0;
+    document.getElementById('kpi-ai-sub').textContent = `전체 요청 ${d.today_total_requests ?? 0}건`;
+    document.getElementById('kpi-users').textContent = d.total_users ?? 0;
+
+    // AI health
+    const aiOk = (d.today_ai_requests !== undefined);
+    document.getElementById('health-ai').className = aiOk ? 'badge b-green' : 'badge b-amber';
+    document.getElementById('health-ai').textContent = aiOk ? '정상' : '크레딧 확인 필요';
+
+    // Ticker bars
+    const tickers = d.top_tickers ?? [];
+    const maxCount = tickers.length ? Math.max(...tickers.map(t => t.count)) : 1;
+    const barsEl = document.getElementById('ticker-bars');
+    if (tickers.length === 0) {
+      barsEl.innerHTML = '<div class="stat-loading">오늘 조회된 종목 없음</div>';
+    } else {
+      barsEl.innerHTML = tickers.slice(0,5).map(t => `
+        <div class="bar-row">
+          <div class="bar-label">${t.ticker}</div>
+          <div class="bar-bg"><div class="bar-fill" style="width:${Math.round(t.count/maxCount*100)}%"></div></div>
+          <div class="bar-count">${t.count}</div>
+        </div>`).join('');
+    }
+  } catch(e) {
+    document.getElementById('kpi-ai-calls').textContent = '—';
+    document.getElementById('kpi-ai-sub').textContent = 'API 연결 실패';
+    document.getElementById('health-ai').className = 'badge b-amber';
+    document.getElementById('health-ai').textContent = '크레딧 소진';
+    document.getElementById('ticker-bars').innerHTML = '<div class="stat-loading">데이터 없음</div>';
+  }
+}
+
+function updateTime() {
+  const now = new Date();
+  document.getElementById('last-update').textContent =
+    `최종 업데이트: ${now.toLocaleTimeString('ko-KR')}`;
+}
+
+async function fetchAll() {
+  updateTime();
+  await Promise.all([fetchHealth(), fetchStats()]);
+}
+
+// Countdown timer
+let countdown = 30;
+setInterval(() => {
+  countdown--;
+  document.getElementById('timer').textContent = countdown;
+  if (countdown <= 0) {
+    countdown = 30;
+    fetchAll();
+  }
+}, 1000);
+
+fetchAll();
+</script>
+</body>
+</html>
