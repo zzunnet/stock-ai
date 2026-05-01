@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 주식 분석 데모 — StockAI</title>
+  <meta name="description" content="종목코드를 입력하면 Claude AI가 주가 변동 이유를 실시간으로 분석합니다.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --primary: #3B82F6;
+      --primary-dark: #1D4ED8;
+      --bg: #0A0F1E;
+      --bg2: #111827;
+      --bg3: #1F2937;
+      --text: #F9FAFB;
+      --text-muted: #9CA3AF;
+      --border: #374151;
+      --green: #10B981;
+      --red: #EF4444;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Pretendard', 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    nav {
+      display: flex;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: rgba(10, 15, 30, 0.9);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .back-link {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    .back-link:hover { color: var(--text); }
+    .nav-logo {
+      margin-left: auto;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+    .nav-logo span { color: var(--text); }
+
+    .main {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    .page-title {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    .page-title h1 {
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .page-title p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Counter bar */
+    .counter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+      padding: 0.65rem 1.25rem;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 0.875rem;
+      transition: border-color 0.4s, background 0.4s;
+    }
+    .counter-dots { display: flex; gap: 5px; }
+    .counter-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .counter-dot.active { background: var(--primary); }
+    .counter-text { color: var(--text-muted); }
+    .counter-text strong { color: var(--text); }
+
+    /* Input */
+    .input-row {
+      display: flex;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .ticker-input {
+      flex: 1;
+      padding: 0.875rem 1rem;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    .ticker-input:focus { border-color: var(--primary); }
+    .ticker-input::placeholder { color: var(--text-muted); }
+    .analyze-btn {
+      padding: 0.875rem 1.5rem;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .analyze-btn:hover:not(:disabled) { background: var(--primary-dark); }
+    .analyze-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* Quick picks */
+    .quick-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+    }
+    .quick-chip {
+      padding: 0.3rem 0.7rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+    .quick-chip:hover {
+      border-color: var(--primary);
+      color: var(--primary);
+    }
+
+    /* Loading */
+    .loading {
+      display: none;
+      text-align: center;
+      padding: 3.5rem 1rem;
+    }
+    .loading.show { display: block; }
+    .spinner {
+      width: 38px;
+      height: 38px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto 1rem;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-text { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.3rem; }
+    .loading-sub { color: #4B5563; font-size: 0.8rem; }
+
+    /* Result card */
+    .result-card {
+      display: none;
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      animation: fadeUp 0.3s ease;
+    }
+    .result-card.show { display: block; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .result-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .stock-name-block .stock-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+    .stock-name-block .stock-code {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    .stock-price-block { text-align: right; }
+    .stock-price {
+      font-size: 1.4rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    .stock-change {
+      display: inline-block;
+      padding: 0.2rem 0.55rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 0.25rem;
+    }
+    .stock-change.up   { background: rgba(16,185,129,0.12); color: var(--green); }
+    .stock-change.down { background: rgba(239,68,68,0.12);  color: var(--red);   }
+    .stock-change.flat { background: var(--bg3); color: var(--text-muted); }
+
+    .ai-box {
+      padding: 1.5rem;
+      border-left: 3px solid var(--primary);
+      border-bottom: 1px solid var(--border);
+      background: rgba(59,130,246,0.03);
+    }
+    .ai-label {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--primary);
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+    .ai-text {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      line-height: 1.85;
+      white-space: pre-wrap;
+    }
+    .ai-text strong { color: var(--text); }
+
+    .result-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.875rem 1.5rem;
+      font-size: 0.78rem;
+      color: #4B5563;
+    }
+
+    /* Error card */
+    .error-card {
+      display: none;
+      background: rgba(239,68,68,0.05);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 14px;
+      padding: 1.5rem;
+      animation: fadeUp 0.3s ease;
+    }
+    .error-card.show { display: block; }
+    .error-icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    .error-title { font-weight: 600; color: var(--red); margin-bottom: 0.4rem; }
+    .error-msg { font-size: 0.875rem; color: var(--text-muted); }
+
+    /* Upgrade card */
+    .upgrade-card {
+      display: none;
+      background: linear-gradient(135deg, rgba(59,130,246,0.08) 0%, var(--bg2) 100%);
+      border: 1px solid var(--primary);
+      border-radius: 16px;
+      padding: 2.5rem 2rem;
+      text-align: center;
+      animation: fadeUp 0.3s ease;
+    }
+    .upgrade-card.show { display: block; }
+    .upgrade-icon { font-size: 2.75rem; margin-bottom: 1rem; }
+    .upgrade-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+    .upgrade-desc {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-bottom: 1.75rem;
+      line-height: 1.7;
+    }
+    .upgrade-btn {
+      display: inline-block;
+      padding: 0.8rem 2.25rem;
+      background: var(--primary);
+      color: white;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      text-decoration: none;
+      transition: background 0.2s;
+    }
+    .upgrade-btn:hover { background: var(--primary-dark); }
+    .upgrade-note {
+      margin-top: 1.25rem;
+      font-size: 0.8rem;
+      color: #4B5563;
+    }
+
+    @media (max-width: 600px) {
+      nav { padding: 0.875rem 1rem; }
+      .main { padding: 2rem 1rem 4rem; }
+      .page-title h1 { font-size: 1.5rem; }
+      .input-row { flex-direction: column; }
+      .analyze-btn { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="back-link">← StockAI</a>
+  <div class="nav-logo">Stock<span>AI</span></div>
+</nav>
+
+<div class="main">
+  <div class="page-title">
+    <h1>AI 주식 분석 데모</h1>
+    <p>종목코드를 입력하면 Claude AI가 주가 변동 이유를 분석합니다</p>
+  </div>
+
+  <div class="counter-bar" id="counterBar">
+    <div class="counter-dots" id="counterDots"></div>
+    <span class="counter-text">오늘 무료 분석 <strong id="counterRemaining">3</strong>회 남음</span>
+  </div>
+
+  <div class="input-row">
+    <input
+      type="text"
+      id="tickerInput"
+      class="ticker-input"
+      placeholder="종목코드 입력 (예: 005930, 035720, 000660)"
+      maxlength="10"
+      autocomplete="off"
+      autocorrect="off"
+      spellcheck="false"
+    >
+    <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">AI 분석</button>
+  </div>
+
+  <div class="quick-row">
+    <span>빠른 선택:</span>
+    <button class="quick-chip" onclick="quickPick('005930')">삼성전자</button>
+    <button class="quick-chip" onclick="quickPick('000660')">SK하이닉스</button>
+    <button class="quick-chip" onclick="quickPick('035720')">카카오</button>
+    <button class="quick-chip" onclick="quickPick('035420')">NAVER</button>
+    <button class="quick-chip" onclick="quickPick('005380')">현대차</button>
+    <button class="quick-chip" onclick="quickPick('051910')">LG화학</button>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Claude AI가 분석 중입니다...</div>
+    <div class="loading-sub">데이터 수집 및 AI 분석에 10~30초 소요됩니다</div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div class="stock-name-block">
+        <div class="stock-name" id="stockName"></div>
+        <div class="stock-code" id="stockCode"></div>
+      </div>
+      <div class="stock-price-block">
+        <div class="stock-price" id="stockPrice"></div>
+        <div class="stock-change flat" id="stockChange"></div>
+      </div>
+    </div>
+    <div class="ai-box">
+      <div class="ai-label">⚡ Claude AI 분석</div>
+      <div class="ai-text" id="aiText"></div>
+    </div>
+    <div class="result-footer">
+      <span id="resultTime"></span>
+      <span>Powered by Claude Sonnet</span>
+    </div>
+  </div>
+
+  <!-- Error -->
+  <div class="error-card" id="errorCard">
+    <div class="error-icon">⚠️</div>
+    <div class="error-title" id="errorTitle"></div>
+    <div class="error-msg" id="errorMsg"></div>
+  </div>
+
+  <!-- Upgrade -->
+  <div class="upgrade-card" id="upgradeCard">
+    <div class="upgrade-icon">🚀</div>
+    <div class="upgrade-title">오늘의 무료 분석을 모두 사용했습니다</div>
+    <div class="upgrade-desc">
+      무료 플랜은 하루 3회 AI 분석을 제공합니다.<br>
+      스타터 플랜으로 업그레이드하면 하루 30회 분석이 가능합니다.
+    </div>
+    <a href="/#pricing" class="upgrade-btn">플랜 업그레이드 보기</a>
+    <div class="upgrade-note">내일 자정에 무료 횟수가 초기화됩니다.</div>
+  </div>
+</div>
+
+<script>
+  const FREE_LIMIT = 3;
+
+  function todayKey() {
+    return 'stockai_used_' + new Date().toISOString().slice(0, 10);
+  }
+
+  function getUsed() {
+    return parseInt(localStorage.getItem(todayKey()) || '0', 10);
+  }
+
+  function incUsed() {
+    const n = getUsed() + 1;
+    localStorage.setItem(todayKey(), n);
+    return n;
+  }
+
+  function updateCounter() {
+    const used = getUsed();
+    const remaining = Math.max(0, FREE_LIMIT - used);
+    document.getElementById('counterRemaining').textContent = remaining;
+
+    const wrap = document.getElementById('counterDots');
+    wrap.innerHTML = '';
+    for (let i = 0; i < FREE_LIMIT; i++) {
+      const d = document.createElement('div');
+      d.className = 'counter-dot' + (i < remaining ? ' active' : '');
+      wrap.appendChild(d);
+    }
+
+    if (remaining === 0) {
+      const bar = document.getElementById('counterBar');
+      bar.style.borderColor = 'rgba(59,130,246,0.4)';
+      bar.style.background = 'rgba(59,130,246,0.06)';
+    }
+  }
+
+  function quickPick(ticker) {
+    document.getElementById('tickerInput').value = ticker;
+    document.getElementById('tickerInput').focus();
+  }
+
+  function hideAll() {
+    document.getElementById('resultCard').classList.remove('show');
+    document.getElementById('errorCard').classList.remove('show');
+    document.getElementById('upgradeCard').classList.remove('show');
+  }
+
+  function showError(title, msg) {
+    hideAll();
+    document.getElementById('errorTitle').textContent = title;
+    document.getElementById('errorMsg').textContent = msg;
+    document.getElementById('errorCard').classList.add('show');
+  }
+
+  function showUpgrade() {
+    hideAll();
+    document.getElementById('upgradeCard').classList.add('show');
+  }
+
+  function setLoading(on) {
+    document.getElementById('loading').classList.toggle('show', on);
+    document.getElementById('analyzeBtn').disabled = on;
+  }
+
+  async function runAnalysis() {
+    const raw = document.getElementById('tickerInput').value.trim();
+    const ticker = raw.toUpperCase();
+
+    if (!ticker) {
+      showError('종목코드를 입력해주세요', '예: 005930 (삼성전자), 035720 (카카오), 000660 (SK하이닉스)');
+      return;
+    }
+    if (!/^\d{6}$/.test(ticker)) {
+      showError('잘못된 종목코드 형식', '한국 주식 종목코드는 숫자 6자리입니다. 예: 005930');
+      return;
+    }
+
+    if (getUsed() >= FREE_LIMIT) {
+      showUpgrade();
+      return;
+    }
+
+    hideAll();
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/ai/stock-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticker }),
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        const detail = body.detail || '';
+        if (res.status === 429) {
+          showUpgrade();
+        } else if (res.status === 404 || detail.includes('종목')) {
+          showError('종목을 찾을 수 없습니다', `'${ticker}'에 해당하는 종목이 없습니다. 종목코드를 다시 확인해주세요.`);
+        } else if (res.status === 503) {
+          showError('서비스 일시 불가', detail || '주식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
+        } else {
+          showError('분석 오류', detail || '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+        }
+        return;
+      }
+
+      incUsed();
+      updateCounter();
+
+      // Populate result card
+      document.getElementById('stockName').textContent = body.name || ticker;
+      document.getElementById('stockCode').textContent = `${body.ticker} · KOSPI/KOSDAQ`;
+
+      document.getElementById('stockPrice').textContent = body.current_price != null
+        ? body.current_price.toLocaleString('ko-KR') + '원'
+        : '—';
+
+      const chgEl = document.getElementById('stockChange');
+      const chg = body.change_pct;
+      if (chg != null) {
+        const sign = chg >= 0 ? '▲ +' : '▼ ';
+        chgEl.textContent = sign + Math.abs(chg).toFixed(2) + '%';
+        chgEl.className = 'stock-change ' + (chg > 0 ? 'up' : chg < 0 ? 'down' : 'flat');
+      } else {
+        chgEl.textContent = '—';
+        chgEl.className = 'stock-change flat';
+      }
+
+      document.getElementById('aiText').textContent = body.result || '';
+      document.getElementById('resultTime').textContent =
+        new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + ' 기준';
+
+      document.getElementById('resultCard').classList.add('show');
+
+    } catch (_) {
+      showError('네트워크 오류', '인터넷 연결을 확인하고 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  document.getElementById('tickerInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') runAnalysis();
+  });
+
+  // Init
+  updateCounter();
+</script>
+</body>
+</html>
