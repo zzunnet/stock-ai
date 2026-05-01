@@ -1,13 +1,16 @@
 """
-토스페이먼츠 연동 (한국 결제)
+토스페이먼츠 연동 (한국 결제) + Lemon Squeezy 웹훅
 """
+import hashlib
+import hmac
+import json
 import os
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from services.api_keys import create_key
+from services.api_keys import create_key, update_user_tier
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 logger = logging.getLogger(__name__)
@@ -70,6 +73,73 @@ class ConfirmPaymentRequest(BaseModel):
     amount: int
     plan: str
     email: str
+
+
+def _variant_to_tier(variant_id: str, starter_vid: str, pro_vid: str) -> str:
+    if pro_vid and variant_id == pro_vid:
+        return "pro"
+    if starter_vid and variant_id == starter_vid:
+        return "starter"
+    return ""
+
+
+@router.post("/webhook/lemonsqueezy")
+async def lemonsqueezy_webhook(request: Request):
+    secret = os.environ.get("LEMON_WEBHOOK_SECRET", "")
+    if not secret:
+        logger.error("LEMON_WEBHOOK_SECRET not configured")
+        raise HTTPException(status_code=500, detail="Webhook not configured")
+
+    body = await request.body()
+    sig = request.headers.get("X-Signature", "")
+    expected = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(sig, expected):
+        logger.warning("Lemon Squeezy webhook: invalid signature")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    payload = json.loads(body)
+    event_type = payload.get("meta", {}).get("event_name", "")
+    data = payload.get("data", {})
+    attrs = data.get("attributes", {})
+
+    # email: custom_data 우선, 없으면 user_email
+    meta_custom = payload.get("meta", {}).get("custom_data") or {}
+    attr_custom = attrs.get("custom_data") or {}
+    custom_data = meta_custom or attr_custom
+    email = (custom_data.get("email") or attrs.get("user_email") or "").lower().strip()
+
+    starter_vid = os.environ.get("STARTER_VARIANT_ID", "")
+    pro_vid = os.environ.get("PRO_VARIANT_ID", "")
+
+    if event_type == "order_created":
+        variant_id = str(attrs.get("first_order_item", {}).get("variant_id", ""))
+        tier = _variant_to_tier(variant_id, starter_vid, pro_vid)
+        if email and tier:
+            updated = update_user_tier(email, tier)
+            logger.info("order_created: email=%s variant=%s tier=%s updated=%s", email, variant_id, tier, updated)
+        else:
+            logger.warning("order_created: email=%s or tier=%s missing, skipped", email, tier)
+
+    elif event_type in ("subscription_created", "subscription_updated"):
+        variant_id = str(attrs.get("variant_id", ""))
+        tier = _variant_to_tier(variant_id, starter_vid, pro_vid)
+        if email and tier:
+            updated = update_user_tier(email, tier)
+            logger.info("%s: email=%s variant=%s tier=%s updated=%s", event_type, email, variant_id, tier, updated)
+        else:
+            logger.warning("%s: email=%s or tier=%s missing, skipped", event_type, email, tier)
+
+    elif event_type == "subscription_cancelled":
+        if email:
+            updated = update_user_tier(email, "free")
+            logger.info("subscription_cancelled: email=%s → free updated=%s", email, updated)
+        else:
+            logger.warning("subscription_cancelled: email missing, skipped")
+
+    else:
+        logger.info("Lemon Squeezy webhook: unhandled event_type=%s", event_type)
+
+    return {"received": True}
 
 
 @router.post("/confirm-payment")

@@ -145,6 +145,34 @@ def revoke_key(key: str) -> bool:
         return False
 
 
+def update_user_tier(email: str, tier: str) -> bool:
+    """Update user tier after payment event. Returns True if user was found and updated."""
+    if _use_db():
+        with _get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "UPDATE users SET tier = %s WHERE email = %s RETURNING api_key",
+                    (tier, email),
+                )
+                row = cur.fetchone()
+                if not row:
+                    return False
+                api_key = row[0]
+                cur.execute("UPDATE api_keys SET tier = %s WHERE key = %s", (tier, api_key))
+            conn.commit()
+        return True
+    else:
+        data = _json_load()
+        updated = False
+        for v in data.values():
+            if v.get("email") == email:
+                v["tier"] = tier
+                updated = True
+        if updated:
+            _json_save(data)
+        return updated
+
+
 def register_user(email: str) -> dict:
     """Register a new user. Returns {api_key, tier}. Raises ValueError('already_registered') if duplicate."""
     if _use_db():

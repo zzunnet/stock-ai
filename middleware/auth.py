@@ -13,7 +13,7 @@ FREE_AI_DAILY_LIMIT = 3
 _counters: dict = defaultdict(lambda: (0, date.min))
 _ai_counters: dict = defaultdict(lambda: (0, date.min))
 
-_SKIP_PREFIXES = ("/api/payments/", "/api/auth/", "/health", "/static/", "/docs", "/openapi", "/redoc")
+_SKIP_PREFIXES = ("/api/payments/webhook", "/api/payments/", "/api/auth/", "/health", "/static/", "/docs", "/openapi", "/redoc")
 
 
 def _resolve_tier(request: Request) -> tuple:
