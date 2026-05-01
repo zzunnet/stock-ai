@@ -324,12 +324,124 @@
       color: #4B5563;
     }
 
+    /* Signup section */
+    .signup-section {
+      margin-top: 2rem;
+      padding: 1.75rem;
+      background: linear-gradient(135deg, rgba(16,185,129,0.05) 0%, var(--bg2) 100%);
+      border: 1px solid rgba(16,185,129,0.25);
+      border-radius: 16px;
+    }
+    .signup-header {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+      margin-bottom: 1.25rem;
+    }
+    .signup-icon { font-size: 1.6rem; flex-shrink: 0; }
+    .signup-title {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+    }
+    .signup-desc { font-size: 0.825rem; color: var(--text-muted); }
+    .email-row {
+      display: flex;
+      gap: 0.65rem;
+    }
+    .email-input {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.9rem;
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .email-input:focus { border-color: #10B981; }
+    .email-input::placeholder { color: var(--text-muted); }
+    .signup-btn {
+      padding: 0.75rem 1.25rem;
+      background: #10B981;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: background 0.2s, opacity 0.2s;
+    }
+    .signup-btn:hover:not(:disabled) { background: #059669; }
+    .signup-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+    .signup-error {
+      margin-top: 0.65rem;
+      font-size: 0.82rem;
+      color: var(--red);
+      min-height: 1.1em;
+    }
+    .api-key-result {
+      display: none;
+      margin-top: 0.5rem;
+    }
+    .api-key-result.show { display: block; }
+    .api-key-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: #10B981;
+      font-weight: 700;
+      margin-bottom: 0.6rem;
+    }
+    .api-key-box {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.75rem 1rem;
+      background: var(--bg3);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 10px;
+    }
+    .api-key-box code {
+      flex: 1;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      color: #10B981;
+      word-break: break-all;
+    }
+    .copy-btn {
+      padding: 0.35rem 0.85rem;
+      background: rgba(16,185,129,0.15);
+      color: #10B981;
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 7px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      white-space: nowrap;
+      transition: background 0.2s;
+      flex-shrink: 0;
+    }
+    .copy-btn:hover { background: rgba(16,185,129,0.25); }
+    .api-key-hint {
+      margin-top: 0.6rem;
+      font-size: 0.78rem;
+      color: #4B5563;
+    }
+
     @media (max-width: 600px) {
       nav { padding: 0.875rem 1rem; }
       .main { padding: 2rem 1rem 4rem; }
       .page-title h1 { font-size: 1.5rem; }
       .input-row { flex-direction: column; }
       .analyze-btn { width: 100%; }
+      .email-row { flex-direction: column; }
+      .signup-btn { width: 100%; }
     }
   </style>
 </head>
@@ -421,6 +533,38 @@
     </div>
     <a href="/#pricing" class="upgrade-btn">플랜 업그레이드 보기</a>
     <div class="upgrade-note">내일 자정에 무료 횟수가 초기화됩니다.</div>
+  </div>
+
+  <!-- API Key Signup -->
+  <div class="signup-section">
+    <div class="signup-header">
+      <div class="signup-icon">🔑</div>
+      <div>
+        <div class="signup-title">API 키로 무제한 사용하기</div>
+        <div class="signup-desc">이메일로 무료 API 키를 발급받아 직접 서비스에 연동하세요</div>
+      </div>
+    </div>
+
+    <div class="email-row" id="emailRow">
+      <input
+        type="email"
+        id="emailInput"
+        class="email-input"
+        placeholder="이메일 주소 입력"
+        autocomplete="email"
+      >
+      <button class="signup-btn" id="signupBtn" onclick="registerEmail()">API 키 받기</button>
+    </div>
+    <div class="signup-error" id="signupError"></div>
+
+    <div class="api-key-result" id="apiKeyResult">
+      <div class="api-key-label">✓ 발급된 API 키</div>
+      <div class="api-key-box">
+        <code id="apiKeyValue"></code>
+        <button class="copy-btn" id="copyBtn" onclick="copyApiKey()">복사</button>
+      </div>
+      <div class="api-key-hint">X-API-Key 헤더에 이 키를 포함해서 API를 호출하세요</div>
+    </div>
   </div>
 </div>
 
@@ -571,6 +715,59 @@
   document.getElementById('tickerInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') runAnalysis();
   });
+
+  document.getElementById('emailInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') registerEmail();
+  });
+
+  async function registerEmail() {
+    const email = document.getElementById('emailInput').value.trim();
+    const errEl = document.getElementById('signupError');
+    errEl.textContent = '';
+
+    if (!email) {
+      errEl.textContent = '이메일을 입력해주세요.';
+      return;
+    }
+
+    const btn = document.getElementById('signupBtn');
+    btn.disabled = true;
+    btn.textContent = '발급 중...';
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const body = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        errEl.textContent = body.detail || '오류가 발생했습니다. 다시 시도해주세요.';
+        return;
+      }
+
+      document.getElementById('apiKeyValue').textContent = body.api_key;
+      document.getElementById('emailRow').style.display = 'none';
+      document.getElementById('apiKeyResult').classList.add('show');
+
+    } catch (_) {
+      errEl.textContent = '네트워크 오류가 발생했습니다.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'API 키 받기';
+    }
+  }
+
+  function copyApiKey() {
+    const key = document.getElementById('apiKeyValue').textContent;
+    navigator.clipboard.writeText(key).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '복사됨!';
+      setTimeout(() => { btn.textContent = '복사'; }, 2000);
+    });
+  }
 
   // Init
   updateCounter();

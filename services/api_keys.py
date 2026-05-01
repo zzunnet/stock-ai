@@ -34,8 +34,17 @@ def init_db():
                         active     BOOLEAN     NOT NULL DEFAULT TRUE
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS users (
+                        email      TEXT PRIMARY KEY,
+                        tier       TEXT      NOT NULL DEFAULT 'free',
+                        api_key    TEXT      NOT NULL,
+                        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                        verified   BOOLEAN   NOT NULL DEFAULT FALSE
+                    )
+                """)
             conn.commit()
-        logger.info("DB 초기화 완료 (api_keys 테이블)")
+        logger.info("DB 초기화 완료 (api_keys, users 테이블)")
     except Exception as e:
         logger.warning("DB 초기화 실패 (DATABASE_URL 미설정?): %s", e)
 
@@ -120,3 +129,31 @@ def revoke_key(key: str) -> bool:
             _json_save(data)
             return True
         return False
+
+
+def register_user(email: str) -> dict:
+    """Register a new user. Returns {api_key, tier}. Raises ValueError('already_registered') if duplicate."""
+    if _use_db():
+        with _get_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT api_key FROM users WHERE email = %s", (email,))
+                if cur.fetchone():
+                    raise ValueError("already_registered")
+                api_key = "sak_" + secrets.token_urlsafe(32)
+                cur.execute(
+                    "INSERT INTO api_keys (key, tier, email, created_at, active) VALUES (%s, %s, %s, %s, %s)",
+                    (api_key, "free", email, datetime.utcnow(), True),
+                )
+                cur.execute(
+                    "INSERT INTO users (email, tier, api_key, created_at, verified) VALUES (%s, %s, %s, %s, %s)",
+                    (email, "free", api_key, datetime.utcnow(), False),
+                )
+            conn.commit()
+        return {"api_key": api_key, "tier": "free"}
+    else:
+        data = _json_load()
+        for v in data.values():
+            if v.get("email") == email:
+                raise ValueError("already_registered")
+        api_key = create_key("free", email)
+        return {"api_key": api_key, "tier": "free"}
