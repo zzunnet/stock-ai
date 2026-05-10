@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI 주식 분석 데모 — StockAI</title>
-  <meta name="description" content="종목코드를 입력하면 Claude AI가 주가 변동 이유를 실시간으로 분석합니다.">
+  <title>AI 주식 분석 데모 - StockAI</title>
+  <meta name="description" content="종목코드를 입력하면 Claude AI가 주가 변동 이유를 실시간으로 분석해드립니다.">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -448,14 +448,14 @@
 <body>
 
 <nav>
-  <a href="/" class="back-link">← StockAI</a>
+  <a href="/" class="back-link">← StockAI 메인</a>
   <div class="nav-logo">Stock<span>AI</span></div>
 </nav>
 
 <div class="main">
   <div class="page-title">
     <h1>AI 주식 분석 데모</h1>
-    <p>종목코드를 입력하면 Claude AI가 주가 변동 이유를 분석합니다</p>
+    <p>종목코드를 입력하면 AI가 주가 변동 이유를 실시간으로 분석합니다</p>
   </div>
 
   <div class="counter-bar" id="counterBar">
@@ -468,30 +468,27 @@
       type="text"
       id="tickerInput"
       class="ticker-input"
-      placeholder="종목코드 입력 (예: 005930, 035720, 000660)"
+      placeholder="종목코드 입력 (예: 005930, 035720)"
       maxlength="10"
       autocomplete="off"
-      autocorrect="off"
-      spellcheck="false"
     >
-    <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">AI 분석</button>
+    <button class="analyze-btn" id="analyzeBtn" onclick="runAnalysis()">분석 시작</button>
   </div>
 
   <div class="quick-row">
-    <span>빠른 선택:</span>
+    <span>인기 종목:</span>
     <button class="quick-chip" onclick="quickPick('005930')">삼성전자</button>
     <button class="quick-chip" onclick="quickPick('000660')">SK하이닉스</button>
     <button class="quick-chip" onclick="quickPick('035720')">카카오</button>
     <button class="quick-chip" onclick="quickPick('035420')">NAVER</button>
     <button class="quick-chip" onclick="quickPick('005380')">현대차</button>
-    <button class="quick-chip" onclick="quickPick('051910')">LG화학</button>
   </div>
 
   <!-- Loading -->
   <div class="loading" id="loading">
     <div class="spinner"></div>
-    <div class="loading-text">Claude AI가 분석 중입니다...</div>
-    <div class="loading-sub">데이터 수집 및 AI 분석에 10~30초 소요됩니다</div>
+    <div class="loading-text">AI 분석 엔진 가동 중...</div>
+    <div class="loading-sub">데이터 수집 및 분석에 약 5~10초가 소요됩니다.</div>
   </div>
 
   <!-- Result -->
@@ -507,12 +504,12 @@
       </div>
     </div>
     <div class="ai-box">
-      <div class="ai-label">⚡ Claude AI 분석</div>
+      <div class="ai-label">AI 분석 결과</div>
       <div class="ai-text" id="aiText"></div>
     </div>
     <div class="result-footer">
       <span id="resultTime"></span>
-      <span>Powered by Claude Sonnet</span>
+      <span>Ollama 하이브리드 엔진 가동 중</span>
     </div>
   </div>
 
@@ -526,13 +523,13 @@
   <!-- Upgrade -->
   <div class="upgrade-card" id="upgradeCard">
     <div class="upgrade-icon">🚀</div>
-    <div class="upgrade-title">오늘의 무료 분석을 모두 사용했습니다</div>
+    <div class="upgrade-title">오늘 분석 횟수를 모두 사용했습니다</div>
     <div class="upgrade-desc">
       무료 플랜은 하루 3회 AI 분석을 제공합니다.<br>
-      스타터 플랜으로 업그레이드하면 하루 30회 분석이 가능합니다.
+      스타터 플랜으로 업그레이드하시면 하루 30회 분석이 가능합니다.
     </div>
-    <a href="/#pricing" class="upgrade-btn">플랜 업그레이드 보기</a>
-    <div class="upgrade-note">내일 자정에 무료 횟수가 초기화됩니다.</div>
+    <a href="/#pricing" class="upgrade-btn">플랜 보기</a>
+    <div class="upgrade-note">매일 오전 9시에 횟수가 초기화됩니다.</div>
   </div>
 
   <!-- API Key Signup -->
@@ -540,8 +537,8 @@
     <div class="signup-header">
       <div class="signup-icon">🔑</div>
       <div>
-        <div class="signup-title">API 키로 무제한 사용하기</div>
-        <div class="signup-desc">이메일로 무료 API 키를 발급받아 직접 서비스에 연동하세요</div>
+        <div class="signup-title">개발자용 API 키 무료 발급</div>
+        <div class="signup-desc">직접 앱을 개발하고 싶다면 API 키를 받아보세요</div>
       </div>
     </div>
 
@@ -553,17 +550,17 @@
         placeholder="이메일 주소 입력"
         autocomplete="email"
       >
-      <button class="signup-btn" id="signupBtn" onclick="registerEmail()">API 키 받기</button>
+      <button class="signup-btn" id="signupBtn" onclick="registerEmail()">발급받기</button>
     </div>
     <div class="signup-error" id="signupError"></div>
 
     <div class="api-key-result" id="apiKeyResult">
-      <div class="api-key-label">✓ 발급된 API 키</div>
+      <div class="api-key-label">내 API 키</div>
       <div class="api-key-box">
         <code id="apiKeyValue"></code>
         <button class="copy-btn" id="copyBtn" onclick="copyApiKey()">복사</button>
       </div>
-      <div class="api-key-hint">X-API-Key 헤더에 이 키를 포함해서 API를 호출하세요</div>
+      <div class="api-key-hint">X-API-Key 헤더에 넣어 API를 호출하세요</div>
     </div>
   </div>
 </div>
@@ -597,12 +594,6 @@
       d.className = 'counter-dot' + (i < remaining ? ' active' : '');
       wrap.appendChild(d);
     }
-
-    if (remaining === 0) {
-      const bar = document.getElementById('counterBar');
-      bar.style.borderColor = 'rgba(59,130,246,0.4)';
-      bar.style.background = 'rgba(59,130,246,0.06)';
-    }
   }
 
   function quickPick(ticker) {
@@ -634,15 +625,10 @@
   }
 
   async function runAnalysis() {
-    const raw = document.getElementById('tickerInput').value.trim();
-    const ticker = raw.toUpperCase();
+    const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
 
     if (!ticker) {
-      showError('종목코드를 입력해주세요', '예: 005930 (삼성전자), 035720 (카카오), 000660 (SK하이닉스)');
-      return;
-    }
-    if (!/^\d{6}$/.test(ticker)) {
-      showError('잘못된 종목코드 형식', '한국 주식 종목코드는 숫자 6자리입니다. 예: 005930');
+      showError('종목코드를 입력해주세요', '예: 005930 (삼성전자)');
       return;
     }
 
@@ -664,15 +650,10 @@
       const body = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        const detail = body.detail || '';
         if (res.status === 429) {
           showUpgrade();
-        } else if (res.status === 404 || detail.includes('종목')) {
-          showError('종목을 찾을 수 없습니다', `'${ticker}'에 해당하는 종목이 없습니다. 종목코드를 다시 확인해주세요.`);
-        } else if (res.status === 503) {
-          showError('서비스 일시 불가', detail || '주식 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.');
         } else {
-          showError('분석 오류', detail || '알 수 없는 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+          showError('분석 중 오류 발생', body.detail || '잠시 후 다시 시도해주세요.');
         }
         return;
       }
@@ -680,59 +661,34 @@
       incUsed();
       updateCounter();
 
-      // Populate result card
       document.getElementById('stockName').textContent = body.name || ticker;
       document.getElementById('stockCode').textContent = `${body.ticker} · KOSPI/KOSDAQ`;
-
-      document.getElementById('stockPrice').textContent = body.current_price != null
-        ? body.current_price.toLocaleString('ko-KR') + '원'
-        : '—';
-
+      document.getElementById('stockPrice').textContent = body.current_price ? body.current_price.toLocaleString() + '원' : '';
+      
       const chgEl = document.getElementById('stockChange');
       const chg = body.change_pct;
       if (chg != null) {
-        const sign = chg >= 0 ? '▲ +' : '▼ ';
-        chgEl.textContent = sign + Math.abs(chg).toFixed(2) + '%';
+        chgEl.textContent = (chg >= 0 ? '▲ ' : '▼ ') + Math.abs(chg).toFixed(2) + '%';
         chgEl.className = 'stock-change ' + (chg > 0 ? 'up' : chg < 0 ? 'down' : 'flat');
-      } else {
-        chgEl.textContent = '—';
-        chgEl.className = 'stock-change flat';
       }
 
-      document.getElementById('aiText').textContent = body.result || '';
-      document.getElementById('resultTime').textContent =
-        new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) + ' 기준';
-
+      document.getElementById('aiText').textContent = body.result || '분석 결과를 불러올 수 없습니다.';
+      document.getElementById('resultTime').textContent = new Date().toLocaleTimeString();
       document.getElementById('resultCard').classList.add('show');
 
-    } catch (_) {
-      showError('네트워크 오류', '인터넷 연결을 확인하고 다시 시도해주세요.');
+    } catch (e) {
+      showError('네트워크 오류', '서버와 연결할 수 없습니다. 대시보드에서 서버 상태를 확인해주세요.');
     } finally {
       setLoading(false);
     }
   }
 
-  document.getElementById('tickerInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') runAnalysis();
-  });
-
-  document.getElementById('emailInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') registerEmail();
-  });
-
   async function registerEmail() {
     const email = document.getElementById('emailInput').value.trim();
-    const errEl = document.getElementById('signupError');
-    errEl.textContent = '';
-
-    if (!email) {
-      errEl.textContent = '이메일을 입력해주세요.';
-      return;
-    }
+    if (!email) return;
 
     const btn = document.getElementById('signupBtn');
     btn.disabled = true;
-    btn.textContent = '발급 중...';
 
     try {
       const res = await fetch('/api/auth/register', {
@@ -740,23 +696,18 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });
-
-      const body = await res.json().catch(() => ({}));
-
-      if (!res.ok) {
-        errEl.textContent = body.detail || '오류가 발생했습니다. 다시 시도해주세요.';
-        return;
+      const body = await res.json();
+      if (res.ok) {
+        document.getElementById('apiKeyValue').textContent = body.api_key;
+        document.getElementById('emailRow').style.display = 'none';
+        document.getElementById('apiKeyResult').classList.add('show');
+      } else {
+        document.getElementById('signupError').textContent = body.detail || '오류가 발생했습니다.';
       }
-
-      document.getElementById('apiKeyValue').textContent = body.api_key;
-      document.getElementById('emailRow').style.display = 'none';
-      document.getElementById('apiKeyResult').classList.add('show');
-
-    } catch (_) {
-      errEl.textContent = '네트워크 오류가 발생했습니다.';
+    } catch (e) {
+      document.getElementById('signupError').textContent = '서버 연결 실패';
     } finally {
       btn.disabled = false;
-      btn.textContent = 'API 키 받기';
     }
   }
 
@@ -764,12 +715,12 @@
     const key = document.getElementById('apiKeyValue').textContent;
     navigator.clipboard.writeText(key).then(() => {
       const btn = document.getElementById('copyBtn');
-      btn.textContent = '복사됨!';
-      setTimeout(() => { btn.textContent = '복사'; }, 2000);
+      const old = btn.textContent;
+      btn.textContent = '완료!';
+      setTimeout(() => btn.textContent = old, 2000);
     });
   }
 
-  // Init
   updateCounter();
 </script>
 </body>

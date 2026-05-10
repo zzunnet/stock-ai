@@ -39,7 +39,7 @@ PLANS = {
 @router.get("/plans")
 def get_plans():
     return {
-        "free": {"name": "무료", "price_krw": 0, "requests_per_day": 30, "ai_requests_per_day": 3, "features": ["종목 분석 3회/일", "시장 지수 조회"]},
+        "free": {"name": "무료", "price_krw": 0, "requests_per_day": 30, "ai_requests_per_day": 1, "features": ["종목 분석 1회/일", "시장 지수 조회"]},
         **PLANS,
     }
 

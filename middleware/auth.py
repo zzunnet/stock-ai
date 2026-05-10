@@ -8,7 +8,7 @@ from starlette.requests import Request
 from services.api_keys import get_key_info
 
 FREE_DAILY_LIMIT = 30
-FREE_AI_DAILY_LIMIT = 3
+FREE_AI_DAILY_LIMIT = 1
 
 _counters: dict = defaultdict(lambda: (0, date.min))
 _ai_counters: dict = defaultdict(lambda: (0, date.min))

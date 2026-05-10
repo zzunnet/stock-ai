@@ -9,7 +9,7 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 logger = logging.getLogger(__name__)
 
 _PLAN_LIMITS = {
-    "free":    {"api_calls_per_day": 30,  "ai_analyses_per_day": 3},
+    "free":    {"api_calls_per_day": 30,  "ai_analyses_per_day": 1},
     "starter": {"api_calls_per_day": 100, "ai_analyses_per_day": 30},
     "pro":     {"api_calls_per_day": 500, "ai_analyses_per_day": 100},
 }
