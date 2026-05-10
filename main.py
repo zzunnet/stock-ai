@@ -73,6 +73,14 @@ def dashboard():
     return {"detail": "Not Found"}
 
 
+@app.get("/favicon.ico")
+def favicon():
+    favicon_file = static_dir / "favicon.ico"
+    if favicon_file.exists():
+        return FileResponse(str(favicon_file))
+    return {"detail": "Not Found"}
+
+
 @app.get("/terms")
 def terms():
     terms_file = static_dir / "terms.html"
