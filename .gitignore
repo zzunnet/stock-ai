@@ -4,5 +4,6 @@ __pycache__/
 *.pyo
 .DS_Store
 data/api_keys.json
+data/contacts.json
 venv/
 .venv/

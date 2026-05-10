@@ -55,6 +55,19 @@ def init_db():
                         PRIMARY KEY (identifier, day, kind)
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS contact_messages (
+                        id         SERIAL PRIMARY KEY,
+                        name       TEXT NOT NULL DEFAULT '',
+                        email      TEXT NOT NULL,
+                        subject    TEXT NOT NULL DEFAULT '',
+                        message    TEXT NOT NULL,
+                        status     TEXT NOT NULL DEFAULT 'new',
+                        ip         TEXT NOT NULL DEFAULT '',
+                        user_agent TEXT NOT NULL DEFAULT '',
+                        created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                    )
+                """)
             conn.commit()
         logger.info("DB 초기화 완료 (api_keys, users 테이블)")
     except Exception as e:

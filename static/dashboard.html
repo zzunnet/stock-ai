@@ -115,6 +115,14 @@
   .bar-fill { height: 6px; background: var(--blue); border-radius: 4px; transition: width .5s ease; }
   .bar-count { width: 24px; text-align: right; color: var(--muted); }
 
+  /* Contact messages */
+  .contact-list { display: flex; flex-direction: column; gap: 10px; }
+  .contact-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .contact-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .contact-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .contact-meta { font-size: 11px; color: var(--muted); }
+  .contact-message { white-space: pre-wrap; color: var(--muted); font-size: 12px; }
+
   /* Footer */
   .footer { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
   .footer-left { font-size: 11px; color: var(--muted); }
@@ -316,6 +324,16 @@
     </div>
   </div>
 
+  <!-- Contacts -->
+  <div class="section">
+    <div class="section-title">최근 문의</div>
+    <div class="card">
+      <div class="contact-list" id="contact-list">
+        <div class="stat-loading">문의 내역 불러오는 중...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Footer -->
   <div class="footer">
     <div class="footer-left">30초마다 자동 갱신 &nbsp;·&nbsp; <span id="timer">30</span>초 후 갱신</div>
@@ -325,8 +343,9 @@
 </div>
 
 <script>
+const adminKey = new URLSearchParams(window.location.search).get('key') || '';
 (function() {
-  if (new URLSearchParams(window.location.search).get('key') !== 'nurilabs2026') {
+  if (adminKey !== 'nurilabs2026') {
     document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;min-height:100vh;background:#0A0F1E;color:#EF4444;font-size:24px;font-family:-apple-system,sans-serif;font-weight:600;">접근 거부</div>';
   }
 })();
@@ -355,7 +374,7 @@ async function fetchHealth() {
 
 async function fetchStats() {
   try {
-    const r = await fetch(API + '/api/admin/stats', { signal: AbortSignal.timeout(5000) });
+    const r = await fetch(API + '/api/admin/stats?key=' + encodeURIComponent(adminKey), { signal: AbortSignal.timeout(5000) });
     if (!r.ok) throw new Error(r.status);
     const d = await r.json();
 
@@ -385,6 +404,41 @@ async function fetchStats() {
   }
 }
 
+function escapeHtml(text) {
+  return String(text || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function fetchContacts() {
+  const el = document.getElementById('contact-list');
+  try {
+    const r = await fetch(API + '/api/admin/contacts?limit=10&key=' + encodeURIComponent(adminKey), { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    const contacts = d.contacts || [];
+    if (!contacts.length) {
+      el.innerHTML = '<div class="stat-loading">아직 접수된 문의가 없습니다</div>';
+      return;
+    }
+    el.innerHTML = contacts.map(c => {
+      const when = c.created_at ? new Date(c.created_at).toLocaleString('ko-KR') : '';
+      return `
+        <div class="contact-item">
+          <div class="contact-head">
+            <div>
+              <div class="contact-title">${escapeHtml(c.subject || '제목 없음')}</div>
+              <div class="contact-meta">${escapeHtml(c.name || '이름 없음')} · ${escapeHtml(c.email || '')}</div>
+            </div>
+            <span class="badge ${c.status === 'new' ? 'b-amber' : 'b-gray'}">${escapeHtml(c.status || 'new')}</span>
+          </div>
+          <div class="contact-message">${escapeHtml(c.message || '')}</div>
+          <div class="contact-meta" style="margin-top:8px">${escapeHtml(when)} · ${escapeHtml(c.ip || '')}</div>
+        </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<div class="stat-loading">문의 내역을 불러오지 못했습니다</div>';
+  }
+}
+
 async function fetchEngineStatus() {
   try {
     const r = await fetch(API + '/api/ai/engine-status', { signal: AbortSignal.timeout(5000) });
@@ -407,7 +461,7 @@ function updateTime() {
 
 async function fetchAll() {
   updateTime();
-  await Promise.all([fetchHealth(), fetchStats(), fetchEngineStatus()]);
+  await Promise.all([fetchHealth(), fetchStats(), fetchEngineStatus(), fetchContacts()]);
 }
 
 // Countdown timer

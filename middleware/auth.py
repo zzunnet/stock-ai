@@ -18,7 +18,7 @@ TIER_LIMITS = {
 _counters: dict = defaultdict(lambda: (0, date.min))
 _ai_counters: dict = defaultdict(lambda: (0, date.min))
 
-_SKIP_PREFIXES = ("/api/payments/webhook", "/api/payments/", "/api/auth/", "/api/ai/engine-status", "/health", "/static/", "/docs", "/openapi", "/redoc")
+_SKIP_PREFIXES = ("/api/payments/webhook", "/api/payments/", "/api/auth/", "/api/admin/", "/api/ai/engine-status", "/health", "/static/", "/docs", "/openapi", "/redoc")
 
 
 def _client_identifier(request: Request) -> str:

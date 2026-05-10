@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>문의하기 - StockAI</title>
+  <style>
+    :root { --bg:#0A0F1E; --bg2:#111827; --bg3:#1F2937; --border:#374151; --text:#F9FAFB; --muted:#9CA3AF; --blue:#3B82F6; --green:#10B981; --red:#EF4444; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,'Pretendard','Segoe UI',sans-serif; line-height:1.6; min-height:100vh; }
+    nav { border-bottom:1px solid var(--border); background:rgba(10,15,30,.9); padding:1rem 1.5rem; }
+    nav a { color:var(--blue); text-decoration:none; font-weight:700; }
+    main { max-width:720px; margin:0 auto; padding:3rem 1.5rem 5rem; }
+    h1 { font-size:2rem; margin:0 0 .5rem; }
+    p { color:var(--muted); margin:0 0 1.5rem; }
+    form { background:var(--bg2); border:1px solid var(--border); border-radius:16px; padding:1.5rem; }
+    label { display:block; font-size:.85rem; color:var(--muted); margin:.9rem 0 .35rem; }
+    input, textarea { width:100%; background:var(--bg3); color:var(--text); border:1px solid var(--border); border-radius:10px; padding:.85rem 1rem; font:inherit; outline:none; }
+    input:focus, textarea:focus { border-color:var(--blue); }
+    textarea { min-height:180px; resize:vertical; }
+    .hidden { display:none; }
+    button { margin-top:1rem; width:100%; border:0; border-radius:10px; padding:.95rem 1rem; background:var(--blue); color:#fff; font-weight:800; cursor:pointer; }
+    button:disabled { opacity:.55; cursor:not-allowed; }
+    .msg { margin-top:1rem; font-size:.9rem; min-height:1.4em; color:var(--muted); }
+    .msg.ok { color:var(--green); }
+    .msg.err { color:var(--red); }
+  </style>
+</head>
+<body>
+<nav><a href="/">StockAI</a></nav>
+<main>
+  <h1>문의하기</h1>
+  <p>서비스 이용, 결제, API 키, 제휴 문의를 남겨주세요. 관리자가 대시보드에서 확인한 뒤 연락드립니다.</p>
+  <form id="contactForm">
+    <label for="name">이름 또는 회사명</label>
+    <input id="name" name="name" maxlength="80" placeholder="선택 입력">
+
+    <label for="email">이메일</label>
+    <input id="email" name="email" type="email" maxlength="160" required placeholder="reply@example.com">
+
+    <label for="subject">제목</label>
+    <input id="subject" name="subject" maxlength="120" placeholder="문의 제목">
+
+    <label for="message">문의 내용</label>
+    <textarea id="message" name="message" maxlength="3000" required placeholder="문의 내용을 입력해주세요."></textarea>
+
+    <input class="hidden" id="website" name="website" autocomplete="off" tabindex="-1">
+    <button id="submitBtn" type="submit">문의 접수</button>
+    <div class="msg" id="formMsg"></div>
+  </form>
+</main>
+<script>
+  const form = document.getElementById('contactForm');
+  const msg = document.getElementById('formMsg');
+  const btn = document.getElementById('submitBtn');
+
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    msg.className = 'msg';
+    msg.textContent = '';
+    btn.disabled = true;
+    try {
+      const payload = {
+        name: document.getElementById('name').value.trim(),
+        email: document.getElementById('email').value.trim(),
+        subject: document.getElementById('subject').value.trim(),
+        message: document.getElementById('message').value.trim(),
+        website: document.getElementById('website').value.trim(),
+      };
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || '문의 접수에 실패했습니다.');
+      msg.className = 'msg ok';
+      msg.textContent = body.message || '문의가 접수되었습니다.';
+      form.reset();
+    } catch (err) {
+      msg.className = 'msg err';
+      msg.textContent = err.message || '서버 연결에 실패했습니다.';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
