@@ -27,6 +27,18 @@ def _get_client():
     return _client
 
 
+def get_engine_status() -> dict:
+    key = os.environ.get("ANTHROPIC_API_KEY", "")
+    anthropic_configured = bool(key and "your_anthropic_api_key" not in key)
+    ollama = ollama_ai.get_ollama_status()
+    return {
+        "anthropic_configured": anthropic_configured,
+        "ollama_available": bool(ollama.get("available")),
+        "ollama_models": ollama.get("models", []),
+        "primary_engine": "claude" if anthropic_configured else ("ollama" if ollama.get("available") else "rules"),
+    }
+
+
 def _ask(system: str, user: str, max_tokens: int = 1200, fallback_text: str = "") -> str:
     client = _get_client()
     if client:

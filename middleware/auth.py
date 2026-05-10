@@ -13,7 +13,17 @@ FREE_AI_DAILY_LIMIT = 1
 _counters: dict = defaultdict(lambda: (0, date.min))
 _ai_counters: dict = defaultdict(lambda: (0, date.min))
 
-_SKIP_PREFIXES = ("/api/payments/webhook", "/api/payments/", "/api/auth/", "/health", "/static/", "/docs", "/openapi", "/redoc")
+_SKIP_PREFIXES = ("/api/payments/webhook", "/api/payments/", "/api/auth/", "/api/ai/engine-status", "/health", "/static/", "/docs", "/openapi", "/redoc")
+
+
+def _client_identifier(request: Request) -> str:
+    forwarded = request.headers.get("CF-Connecting-IP") or request.headers.get("X-Forwarded-For") or ""
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    real_ip = request.headers.get("X-Real-IP", "").strip()
+    if real_ip:
+        return real_ip
+    return request.client.host if request.client else "unknown"
 
 
 def _resolve_tier(request: Request) -> tuple:
@@ -22,8 +32,7 @@ def _resolve_tier(request: Request) -> tuple:
         info = get_key_info(api_key)
         if info:
             return info["tier"], api_key
-    ip = request.client.host if request.client else "unknown"
-    return "free", ip
+    return "free", _client_identifier(request)
 
 
 def _check(counters: dict, identifier: str, limit: int) -> bool:
@@ -52,7 +61,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
                 if not _check(_ai_counters, identifier, FREE_AI_DAILY_LIMIT):
                     return JSONResponse(
                         status_code=429,
-                        content={"detail": f"AI 분석 무료 한도({FREE_AI_DAILY_LIMIT}회/일)를 초과했습니다.", "upgrade_url": "/api/payments/plans"},
+                        content={"detail": f"AI 브리핑 무료 한도({FREE_AI_DAILY_LIMIT}회/일)를 초과했습니다.", "upgrade_url": "/api/payments/plans"},
                     )
             else:
                 if not _check(_counters, identifier, FREE_DAILY_LIMIT):

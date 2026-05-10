@@ -364,11 +364,6 @@ async function fetchStats() {
     document.getElementById('kpi-ai-sub').textContent = `전체 요청 ${d.today_total_requests ?? 0}건`;
     document.getElementById('kpi-users').textContent = d.total_users ?? 0;
 
-    // AI health
-    const aiOk = (d.today_ai_requests !== undefined);
-    document.getElementById('health-ai').className = aiOk ? 'badge b-green' : 'badge b-amber';
-    document.getElementById('health-ai').textContent = aiOk ? '정상' : '크레딧 확인 필요';
-
     // Ticker bars
     const tickers = d.top_tickers ?? [];
     const maxCount = tickers.length ? Math.max(...tickers.map(t => t.count)) : 1;
@@ -386,9 +381,21 @@ async function fetchStats() {
   } catch(e) {
     document.getElementById('kpi-ai-calls').textContent = '—';
     document.getElementById('kpi-ai-sub').textContent = 'API 연결 실패';
-    document.getElementById('health-ai').className = 'badge b-amber';
-    document.getElementById('health-ai').textContent = '크레딧 소진';
     document.getElementById('ticker-bars').innerHTML = '<div class="stat-loading">데이터 없음</div>';
+  }
+}
+
+async function fetchEngineStatus() {
+  try {
+    const r = await fetch(API + '/api/ai/engine-status', { signal: AbortSignal.timeout(5000) });
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    const ok = d.primary_engine === 'claude' || d.primary_engine === 'ollama';
+    document.getElementById('health-ai').className = ok ? 'badge b-green' : 'badge b-amber';
+    document.getElementById('health-ai').textContent = ok ? d.primary_engine : '규칙 기반 폴백';
+  } catch(e) {
+    document.getElementById('health-ai').className = 'badge b-red';
+    document.getElementById('health-ai').textContent = '확인 실패';
   }
 }
 
@@ -400,7 +407,7 @@ function updateTime() {
 
 async function fetchAll() {
   updateTime();
-  await Promise.all([fetchHealth(), fetchStats()]);
+  await Promise.all([fetchHealth(), fetchStats(), fetchEngineStatus()]);
 }
 
 // Countdown timer

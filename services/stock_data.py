@@ -3,9 +3,7 @@
 - FinanceDataReader: KOSPI/KOSDAQ/해외주식 OHLCV
 - pykrx: 외국인/기관 순매수, 시가총액, 재무 데이터
 """
-import os
 from datetime import datetime, timedelta
-from typing import Optional
 import logging
 
 import FinanceDataReader as fdr
@@ -18,11 +16,37 @@ def get_stock_list(market: str = "KOSPI") -> list[dict]:
     """KOSPI / KOSDAQ / KRX 종목 목록"""
     try:
         df = fdr.StockListing(market)
-        records = df[["Code", "Name", "Sector", "Industry"]].fillna("").to_dict("records")
-        return [{"code": r["Code"], "name": r["Name"], "sector": r["Sector"], "industry": r["Industry"]} for r in records]
+        for col in ("Sector", "Industry", "Market"):
+            if col not in df.columns:
+                df[col] = ""
+        records = df[["Code", "Name", "Market", "Sector", "Industry"]].fillna("").to_dict("records")
+        return [
+            {
+                "code": r["Code"],
+                "name": r["Name"],
+                "market": r["Market"],
+                "sector": r["Sector"],
+                "industry": r["Industry"],
+            }
+            for r in records
+        ]
     except Exception as e:
         logger.error("종목 목록 조회 실패: %s", e)
         raise RuntimeError(f"종목 목록 조회 실패: {e}")
+
+
+def _clean_ohlcv(df: pd.DataFrame) -> pd.DataFrame:
+    """Drop malformed rows such as zero OHLC values from upstream data."""
+    if df.empty:
+        return df
+    cols = [c for c in ("Open", "High", "Low", "Close") if c in df.columns]
+    if not cols:
+        return df
+    cleaned = df.copy()
+    for col in cols:
+        cleaned[col] = pd.to_numeric(cleaned[col], errors="coerce")
+    cleaned = cleaned.dropna(subset=cols)
+    return cleaned[(cleaned[cols] > 0).all(axis=1)]
 
 
 def get_ohlcv(ticker: str, days: int = 90) -> list[dict]:
@@ -31,6 +55,7 @@ def get_ohlcv(ticker: str, days: int = 90) -> list[dict]:
     start = end - timedelta(days=days)
     try:
         df = fdr.DataReader(ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"))
+        df = _clean_ohlcv(df)
         df = df.reset_index()
         df.columns = [c.lower() for c in df.columns]
         return df.tail(60).to_dict("records")
@@ -95,6 +120,7 @@ def get_stock_analysis_data(ticker: str) -> dict:
         df = fdr.DataReader(ticker, start=start.strftime("%Y-%m-%d"), end=end.strftime("%Y-%m-%d"))
     except Exception as e:
         raise RuntimeError(f"데이터 조회 실패: {e}")
+    df = _clean_ohlcv(df)
     if df.empty:
         raise RuntimeError(f"데이터 없음: {ticker}")
     info = get_stock_info(ticker)
@@ -137,6 +163,8 @@ def get_sector_stocks(sector: str, limit: int = 10) -> list[dict]:
     """특정 섹터 상위 종목"""
     try:
         df = fdr.StockListing("KOSPI")
+        if "Sector" not in df.columns:
+            return []
         sector_df = df[df["Sector"].str.contains(sector, na=False, case=False)]
         results = []
         for _, row in sector_df.head(limit).iterrows():

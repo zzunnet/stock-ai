@@ -124,3 +124,8 @@ def sentiment_analysis(req: SentimentRequest):
 @router.get("/ollama-status")
 def ollama_status():
     return ollama_ai.get_ollama_status()
+
+
+@router.get("/engine-status")
+def engine_status():
+    return claude_ai.get_engine_status()
