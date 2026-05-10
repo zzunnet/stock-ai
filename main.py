@@ -70,3 +70,19 @@ def dashboard():
     if dashboard_file.exists():
         return FileResponse(str(dashboard_file))
     return {"detail": "Not Found"}
+
+
+@app.get("/terms")
+def terms():
+    terms_file = static_dir / "terms.html"
+    if terms_file.exists():
+        return FileResponse(str(terms_file))
+    return {"detail": "Not Found"}
+
+
+@app.get("/privacy")
+def privacy():
+    privacy_file = static_dir / "privacy.html"
+    if privacy_file.exists():
+        return FileResponse(str(privacy_file))
+    return {"detail": "Not Found"}
