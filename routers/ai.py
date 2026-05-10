@@ -56,7 +56,15 @@ def stock_analysis(req: StockAnalysisRequest):
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI 분석 오류: {e}")
-    return {"result": result, "ticker": req.ticker, "name": data["info"].get("name", req.ticker), "current_price": data["indicators"]["current_price"], "change_pct": data.get("change_pct")}
+    return {
+        "result": result,
+        "ticker": req.ticker,
+        "name": data["info"].get("name", req.ticker),
+        "current_price": data["indicators"]["current_price"],
+        "change_pct": data.get("change_pct"),
+        "briefing_type": "stock_movement",
+        "disclaimer": "투자자문이 아닌 정보 브리핑입니다.",
+    }
 
 
 @router.post("/market-overview")

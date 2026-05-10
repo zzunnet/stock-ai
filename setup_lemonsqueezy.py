@@ -19,7 +19,7 @@ PLANS = [
     {
         "key": "starter",
         "name": "스타터",
-        "description": "개인 투자자를 위한 AI 주식 분석 입문 플랜 — AI 분석 30회/일",
+        "description": "개인 투자자를 위한 한국 주식 변동 브리핑 플랜 — AI 브리핑 30회/일",
         "price": 9900,          # KRW
         "interval": "month",
         "env_key": "STARTER_VARIANT_ID",
@@ -27,7 +27,7 @@ PLANS = [
     {
         "key": "pro",
         "name": "프로",
-        "description": "적극적인 투자자를 위한 AI 주식 분석 풀 플랜 — AI 분석 100회/일 + 포트폴리오 리뷰",
+        "description": "콘텐츠 제작자와 소규모 팀을 위한 한국 주식 브리핑 플랜 — AI 브리핑 100회/일 + API 확장",
         "price": 29900,         # KRW
         "interval": "month",
         "env_key": "PRO_VARIANT_ID",

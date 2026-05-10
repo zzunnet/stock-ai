@@ -24,14 +24,14 @@ PLANS = {
         "price_krw": 9900,
         "requests_per_day": 100,
         "ai_requests_per_day": 30,
-        "features": ["종목 분석 30회/일", "시장 동향 분석", "섹터 분석"],
+        "features": ["종목 브리핑 30회/일", "시장 분위기 브리핑", "섹터 브리핑"],
     },
     "pro": {
         "name": "프로",
         "price_krw": 29900,
         "requests_per_day": 500,
         "ai_requests_per_day": 100,
-        "features": ["종목 분석 100회/일", "포트폴리오 리뷰", "감성 분석 무제한", "우선 지원"],
+        "features": ["종목 브리핑 100회/일", "포트폴리오 복기", "브리핑 API 확장", "우선 지원"],
     },
 }
 
@@ -39,7 +39,7 @@ PLANS = {
 @router.get("/plans")
 def get_plans():
     return {
-        "free": {"name": "무료", "price_krw": 0, "requests_per_day": 30, "ai_requests_per_day": 1, "features": ["종목 분석 1회/일", "시장 지수 조회"]},
+        "free": {"name": "무료", "price_krw": 0, "requests_per_day": 30, "ai_requests_per_day": 1, "features": ["종목 브리핑 1회/일", "시장 지수 조회"]},
         **PLANS,
     }
 
@@ -60,7 +60,7 @@ def create_payment(req: CreatePaymentRequest):
     return {
         "client_key": os.environ.get("TOSS_CLIENT_KEY", "test_ck_D5GePWvyJnrK0W0k6q8gLzN97Eoq"),
         "order_id": order_id,
-        "order_name": req.order_name or f"주식 AI 분석 {plan['name']} 구독",
+        "order_name": req.order_name or f"StockAI 브리핑 {plan['name']} 구독",
         "amount": plan["price_krw"],
         "customer_email": req.email,
         "plan": req.plan,
