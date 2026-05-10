@@ -220,6 +220,53 @@
     }
     .free-note strong { color: var(--text); }
 
+    .account-section {
+      max-width: 720px; margin: 0 auto 5rem; padding: 0 1.5rem;
+    }
+    .account-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: 16px; padding: 1.5rem;
+    }
+    .account-box h3 { font-size: 1.1rem; margin-bottom: 0.4rem; }
+    .account-box p { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem; }
+    .account-row { display: flex; gap: 0.65rem; }
+    .email-input {
+      flex: 1; padding: 0.8rem 1rem; background: var(--bg3);
+      border: 1px solid var(--border); border-radius: 10px;
+      color: var(--text); font: inherit; outline: none;
+    }
+    .email-input:focus { border-color: var(--primary); }
+    .small-btn {
+      padding: 0.8rem 1.2rem; border: none; border-radius: 10px;
+      background: var(--primary); color: #fff; font-weight: 700; cursor: pointer;
+    }
+    .account-result {
+      display: none; margin-top: 1rem; padding: 1rem; border-radius: 10px;
+      background: var(--bg3); color: var(--text-muted); font-size: 0.875rem;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    .account-result.show { display: block; }
+
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0; z-index: 1000;
+      background: rgba(0,0,0,0.68); align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .modal-backdrop.show { display: flex; }
+    .modal {
+      width: min(440px, 100%); background: var(--bg2);
+      border: 1px solid var(--border); border-radius: 16px; padding: 1.5rem;
+      box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+    }
+    .modal h3 { margin-bottom: 0.45rem; font-size: 1.15rem; }
+    .modal p { color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1rem; }
+    .modal-actions { display: flex; gap: 0.65rem; margin-top: 1rem; }
+    .modal-error { min-height: 1.2em; color: var(--red); font-size: 0.82rem; margin-top: 0.7rem; }
+    .btn-ghost {
+      padding: 0.8rem 1rem; border-radius: 10px; border: 1px solid var(--border);
+      color: var(--text); background: transparent; cursor: pointer; font-weight: 700;
+    }
+
     footer {
       padding: 2.5rem 1.5rem;
       border-top: 1px solid var(--border);
@@ -233,6 +280,7 @@
     @media (max-width: 600px) {
       nav { padding: 0.875rem 1rem; }
       .hero h1 { font-size: 1.9rem; }
+      .account-row, .modal-actions { flex-direction: column; }
     }
   </style>
 </head>
@@ -371,7 +419,7 @@
         <li>포트폴리오 복기 브리핑</li>
         <li class="muted">팀/API 대량 사용</li>
       </ul>
-      <button class="plan-btn filled" onclick="window.location.href='/demo.html'">시작하기</button>
+      <button class="plan-btn filled" onclick="openCheckout('starter')">시작하기</button>
     </div>
     <div class="plan-card">
       <div class="plan-name">프로</div>
@@ -385,13 +433,38 @@
         <li>우선 고객지원</li>
         <li>대량 사용 협의 가능</li>
       </ul>
-      <button class="plan-btn outline" onclick="window.location.href='/demo.html'">시작하기</button>
+      <button class="plan-btn outline" onclick="openCheckout('pro')">시작하기</button>
     </div>
   </div>
   <div class="free-note">
     신용카드 불필요 · <strong>무료 플랜 영구 제공</strong> · 언제든 취소 가능
   </div>
 </section>
+
+<section class="account-section">
+  <div class="account-box">
+    <h3>계정·구독 관리</h3>
+    <p>회원가입은 이메일 기반 API 키 발급 방식입니다. 같은 이메일로 결제하면 기존 API 키의 플랜이 업그레이드됩니다.</p>
+    <div class="account-row">
+      <input id="accountEmail" class="email-input" type="email" placeholder="가입 또는 결제한 이메일">
+      <button class="small-btn" onclick="lookupAccount()">내 계정 확인</button>
+    </div>
+    <div id="accountResult" class="account-result"></div>
+  </div>
+</section>
+
+<div class="modal-backdrop" id="checkoutModal">
+  <div class="modal">
+    <h3 id="checkoutTitle">구독 시작</h3>
+    <p>결제와 API 키를 연결할 이메일을 입력해주세요. 결제 완료 후 같은 이메일의 API 키가 자동으로 업그레이드됩니다.</p>
+    <input id="checkoutEmail" class="email-input" type="email" placeholder="이메일 주소">
+    <div class="modal-error" id="checkoutError"></div>
+    <div class="modal-actions">
+      <button class="small-btn" onclick="startCheckout()">결제 페이지로 이동</button>
+      <button class="btn-ghost" onclick="closeCheckout()">닫기</button>
+    </div>
+  </div>
+</div>
 
 <footer>
   <div class="footer-logo">StockAI</div>
@@ -404,6 +477,73 @@
   <p style="margin-top:1rem; font-size:0.8rem;">© 2026 StockAI. All rights reserved.</p>
   <p style="margin-top:0.5rem; font-size:0.75rem;">StockAI는 투자자문·매매추천 서비스가 아니며, 제공 정보는 투자 판단을 위한 참고용 브리핑입니다.</p>
 </footer>
+
+<script>
+  let selectedPlan = 'starter';
+
+  function openCheckout(plan) {
+    selectedPlan = plan;
+    document.getElementById('checkoutTitle').textContent =
+      plan === 'starter' ? '스타터 구독 시작' : '프로 구독 시작';
+    document.getElementById('checkoutError').textContent = '';
+    document.getElementById('checkoutModal').classList.add('show');
+    setTimeout(() => document.getElementById('checkoutEmail').focus(), 0);
+  }
+
+  function closeCheckout() {
+    document.getElementById('checkoutModal').classList.remove('show');
+  }
+
+  async function startCheckout() {
+    const email = document.getElementById('checkoutEmail').value.trim();
+    const err = document.getElementById('checkoutError');
+    err.textContent = '';
+    if (!email) {
+      err.textContent = '결제에 사용할 이메일을 입력해주세요.';
+      return;
+    }
+    try {
+      const res = await fetch('/api/payments/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, email }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        err.textContent = body.detail || '결제 링크를 만들지 못했습니다.';
+        return;
+      }
+      window.location.href = body.checkout_url;
+    } catch (_) {
+      err.textContent = '서버 연결에 실패했습니다.';
+    }
+  }
+
+  async function lookupAccount() {
+    const email = document.getElementById('accountEmail').value.trim();
+    const box = document.getElementById('accountResult');
+    box.classList.add('show');
+    box.textContent = '확인 중...';
+    try {
+      const res = await fetch('/api/auth/account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        box.textContent = body.detail || '계정을 찾을 수 없습니다.';
+        return;
+      }
+      const portal = body.customer_portal_url
+        ? `\n구독 관리: ${body.customer_portal_url}`
+        : '\n구독 관리: 결제 완료 후 활성화됩니다.';
+      box.textContent = `이메일: ${body.email}\n플랜: ${body.tier}\nAPI 키: ${body.api_key}${portal}`;
+    } catch (_) {
+      box.textContent = '서버 연결에 실패했습니다.';
+    }
+  }
+</script>
 
 </body>
 </html>

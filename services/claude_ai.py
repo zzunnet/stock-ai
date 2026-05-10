@@ -11,6 +11,8 @@ from . import ollama_ai
 logger = logging.getLogger(__name__)
 
 _client = None
+MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-haiku-4-5-20251001")
+STOCK_MAX_TOKENS = int(os.environ.get("STOCK_AI_MAX_TOKENS", "900"))
 
 
 def _get_client():
@@ -35,6 +37,8 @@ def get_engine_status() -> dict:
         "anthropic_configured": anthropic_configured,
         "ollama_available": bool(ollama.get("available")),
         "ollama_models": ollama.get("models", []),
+        "model": MODEL if anthropic_configured else "",
+        "stock_max_tokens": STOCK_MAX_TOKENS,
         "primary_engine": "claude" if anthropic_configured else ("ollama" if ollama.get("available") else "rules"),
     }
 
@@ -44,7 +48,7 @@ def _ask(system: str, user: str, max_tokens: int = 1200, fallback_text: str = ""
     if client:
         try:
             msg = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model=MODEL,
                 max_tokens=max_tokens,
                 system=system,
                 messages=[{"role": "user", "content": user}],
@@ -120,7 +124,7 @@ def stock_analysis(ticker: str, data: dict) -> str:
 - 급등락 원인을 단정하기보다 공시, 거래량 변화, 업종 동향을 함께 확인하세요.
 
 투자 판단은 본인 책임이며 이 내용은 투자자문이 아닌 정보 브리핑입니다."""
-    return _ask(SYSTEM_PROMPT, user_msg, max_tokens=1500, fallback_text=fallback)
+    return _ask(SYSTEM_PROMPT, user_msg, max_tokens=STOCK_MAX_TOKENS, fallback_text=fallback)
 
 
 def market_overview(indices: dict) -> str:

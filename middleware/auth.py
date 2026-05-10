@@ -5,10 +5,15 @@ from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
-from services.api_keys import get_key_info
+from services.api_keys import check_and_increment_usage, get_key_info
 
 FREE_DAILY_LIMIT = 30
 FREE_AI_DAILY_LIMIT = 1
+TIER_LIMITS = {
+    "free": {"api": FREE_DAILY_LIMIT, "ai": FREE_AI_DAILY_LIMIT},
+    "starter": {"api": 100, "ai": 30},
+    "pro": {"api": 500, "ai": 100},
+}
 
 _counters: dict = defaultdict(lambda: (0, date.min))
 _ai_counters: dict = defaultdict(lambda: (0, date.min))
@@ -31,8 +36,8 @@ def _resolve_tier(request: Request) -> tuple:
     if api_key:
         info = get_key_info(api_key)
         if info:
-            return info["tier"], api_key
-    return "free", _client_identifier(request)
+            return info["tier"], f"key:{api_key}", True
+    return "free", f"anon:{_client_identifier(request)}", False
 
 
 def _check(counters: dict, identifier: str, limit: int) -> bool:
@@ -53,21 +58,22 @@ class AuthMiddleware(BaseHTTPMiddleware):
         if not path.startswith("/api/") or any(path.startswith(p) for p in _SKIP_PREFIXES):
             return await call_next(request)
 
-        tier, identifier = _resolve_tier(request)
+        tier, identifier, has_api_key = _resolve_tier(request)
+        request.state.tier = tier
+        request.state.identifier = identifier
+        request.state.has_api_key = has_api_key
 
-        if tier == "free":
-            is_ai = path.startswith("/api/ai/")
-            if is_ai:
-                if not _check(_ai_counters, identifier, FREE_AI_DAILY_LIMIT):
-                    return JSONResponse(
-                        status_code=429,
-                        content={"detail": f"AI 브리핑 무료 한도({FREE_AI_DAILY_LIMIT}회/일)를 초과했습니다.", "upgrade_url": "/api/payments/plans"},
-                    )
-            else:
-                if not _check(_counters, identifier, FREE_DAILY_LIMIT):
-                    return JSONResponse(
-                        status_code=429,
-                        content={"detail": f"일일 무료 요청 한도({FREE_DAILY_LIMIT}회)를 초과했습니다.", "upgrade_url": "/api/payments/plans"},
-                    )
+        limits = TIER_LIMITS.get(tier, TIER_LIMITS["free"])
+        is_ai = path.startswith("/api/ai/")
+        kind = "ai" if is_ai else "api"
+        limit = limits[kind]
+        counters = _ai_counters if is_ai else _counters
+        if not check_and_increment_usage(identifier, kind, limit):
+            message = (
+                f"AI 브리핑 한도({limit}회/일)를 초과했습니다."
+                if is_ai else f"일일 API 요청 한도({limit}회)를 초과했습니다."
+            )
+            return JSONResponse(status_code=429, content={"detail": message, "upgrade_url": "/#pricing"})
+        _check(counters, identifier, 10**9)
 
         return await call_next(request)

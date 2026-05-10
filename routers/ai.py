@@ -6,6 +6,8 @@ from services import claude_ai, stock_data, ollama_ai
 
 router = APIRouter(prefix="/api/ai", tags=["ai"])
 
+_stock_briefing_cache: dict = {}
+
 
 class StockAnalysisRequest(BaseModel):
     ticker: str
@@ -50,12 +52,17 @@ def stock_analysis(req: StockAnalysisRequest):
         data = stock_data.get_stock_analysis_data(req.ticker)
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"데이터 조회 실패: {e}")
-    try:
-        result = claude_ai.stock_analysis(req.ticker, data)
-    except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"AI 분석 오류: {e}")
+    cache_key = (req.ticker, data.get("data_date", ""))
+    if cache_key in _stock_briefing_cache:
+        result = _stock_briefing_cache[cache_key]
+    else:
+        try:
+            result = claude_ai.stock_analysis(req.ticker, data)
+        except RuntimeError as e:
+            raise HTTPException(status_code=503, detail=str(e))
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"AI 분석 오류: {e}")
+        _stock_briefing_cache[cache_key] = result
     return {
         "result": result,
         "ticker": req.ticker,

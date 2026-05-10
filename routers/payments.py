@@ -10,7 +10,7 @@ import httpx
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from services.api_keys import create_key, update_user_tier
+from services.api_keys import create_key, get_user_by_email, register_user, update_user_subscription, update_user_tier
 
 router = APIRouter(prefix="/api/payments", tags=["payments"])
 logger = logging.getLogger(__name__)
@@ -67,6 +67,60 @@ def create_payment(req: CreatePaymentRequest):
     }
 
 
+class CheckoutRequest(BaseModel):
+    plan: str
+    email: str
+
+
+def _checkout_url_for(plan: str) -> str:
+    env_name = "STARTER_CHECKOUT_URL" if plan == "starter" else "PRO_CHECKOUT_URL"
+    return os.environ.get(env_name, "").strip()
+
+
+@router.post("/checkout")
+def checkout(req: CheckoutRequest):
+    email = req.email.strip().lower()
+    if req.plan not in PLANS:
+        raise HTTPException(status_code=400, detail=f"유효하지 않은 플랜: {req.plan}")
+    if not email or "@" not in email or "." not in email.split("@")[-1]:
+        raise HTTPException(status_code=400, detail="결제에 사용할 이메일을 입력해주세요.")
+
+    if not get_user_by_email(email):
+        try:
+            register_user(email)
+        except ValueError:
+            pass
+
+    checkout_url = _checkout_url_for(req.plan)
+    if not checkout_url:
+        raise HTTPException(
+            status_code=503,
+            detail="결제 링크가 아직 설정되지 않았습니다. 관리자에게 STARTER_CHECKOUT_URL/PRO_CHECKOUT_URL 환경변수 설정이 필요합니다.",
+        )
+    separator = "&" if "?" in checkout_url else "?"
+    return {
+        "checkout_url": f"{checkout_url}{separator}checkout[email]={email}",
+        "plan": req.plan,
+        "email": email,
+        "message": "결제 완료 후 같은 이메일의 API 키가 자동으로 업그레이드됩니다.",
+    }
+
+
+class PortalRequest(BaseModel):
+    email: str
+
+
+@router.post("/portal")
+def customer_portal(req: PortalRequest):
+    user = get_user_by_email(req.email.strip().lower())
+    if not user:
+        raise HTTPException(status_code=404, detail="등록된 이메일이 없습니다.")
+    portal_url = user.get("customer_portal_url") or ""
+    if not portal_url:
+        raise HTTPException(status_code=404, detail="아직 구독 관리 링크가 없습니다. 결제 완료 후 웹훅이 수신되면 생성됩니다.")
+    return {"portal_url": portal_url}
+
+
 class ConfirmPaymentRequest(BaseModel):
     payment_key: str
     order_id: str
@@ -111,11 +165,15 @@ async def lemonsqueezy_webhook(request: Request):
     starter_vid = os.environ.get("STARTER_VARIANT_ID", "")
     pro_vid = os.environ.get("PRO_VARIANT_ID", "")
 
+    subscription_id = str(data.get("id", ""))
+    status = str(attrs.get("status", ""))
+    portal_url = attrs.get("urls", {}).get("customer_portal", "") or attrs.get("customer_portal_url", "")
+
     if event_type == "order_created":
         variant_id = str(attrs.get("first_order_item", {}).get("variant_id", ""))
         tier = _variant_to_tier(variant_id, starter_vid, pro_vid)
         if email and tier:
-            updated = update_user_tier(email, tier)
+            updated = update_user_subscription(email, tier, subscription_id, status, portal_url) or update_user_tier(email, tier)
             logger.info("order_created: email=%s variant=%s tier=%s updated=%s", email, variant_id, tier, updated)
         else:
             logger.warning("order_created: email=%s or tier=%s missing, skipped", email, tier)
@@ -124,14 +182,14 @@ async def lemonsqueezy_webhook(request: Request):
         variant_id = str(attrs.get("variant_id", ""))
         tier = _variant_to_tier(variant_id, starter_vid, pro_vid)
         if email and tier:
-            updated = update_user_tier(email, tier)
+            updated = update_user_subscription(email, tier, subscription_id, status, portal_url) or update_user_tier(email, tier)
             logger.info("%s: email=%s variant=%s tier=%s updated=%s", event_type, email, variant_id, tier, updated)
         else:
             logger.warning("%s: email=%s or tier=%s missing, skipped", event_type, email, tier)
 
     elif event_type == "subscription_cancelled":
         if email:
-            updated = update_user_tier(email, "free")
+            updated = update_user_subscription(email, "free", subscription_id, "cancelled", portal_url) or update_user_tier(email, "free")
             logger.info("subscription_cancelled: email=%s → free updated=%s", email, updated)
         else:
             logger.warning("subscription_cancelled: email missing, skipped")
@@ -162,6 +220,17 @@ async def confirm_payment(req: ConfirmPaymentRequest):
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"결제 서버 오류: {e}")
 
-    api_key = create_key(tier=req.plan, email=req.email)
+    email = req.email.strip().lower()
+    user = get_user_by_email(email)
+    if user:
+        update_user_tier(email, req.plan)
+        api_key = user["api_key"]
+    else:
+        try:
+            result = register_user(email)
+            api_key = result["api_key"]
+            update_user_tier(email, req.plan)
+        except ValueError:
+            api_key = create_key(tier=req.plan, email=email)
     logger.info("결제 완료 및 API 키 발급: %s / %s", req.plan, req.email)
     return {"success": True, "api_key": api_key, "plan": req.plan, "message": "결제 완료! API 키를 안전하게 보관하세요."}
